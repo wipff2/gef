@@ -3,17 +3,17 @@
 local ArrayField = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/ArrayField/main/Source.lua'))()
 
 local Window = ArrayField:CreateWindow({
-   Name = "ArrayField Example Window",
-   LoadingTitle = "ArrayField Interface Suite",
-   LoadingSubtitle = "by Arrays",
+   Name = "ArrayField",
+   LoadingTitle = "ArrayField Interface",
+   LoadingSubtitle = "by anon",
    ConfigurationSaving = {
       Enabled = true,
       FolderName = nil, -- Create a custom folder for your hub/game
       FileName = "ArrayField"
    },
    Discord = {
-      Enabled = false,
-      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      Enabled = true,
+      Invite = "gg/A24f827B", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
       RememberJoins = true -- Set this to false to make them join the discord every time they load it up
    },
    KeySystem = false, -- Set this to true to use our key system
@@ -37,9 +37,9 @@ local Window = ArrayField:CreateWindow({
 })
 
 Window:Prompt({
-    Title = 'Interface Prompt',
-    SubTitle = 'SubTitle',
-    Content = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    Title = 'Interface',
+    SubTitle = 'approve',
+    Content = 'running this script means you have agreed to the rules on my discord',
     Actions = {
         Accept = {
             Name = 'Accept',
@@ -59,7 +59,7 @@ local Tab = Window:CreateTab("top", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
 
 -- Daftar nama tools
-local items = {"Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money", "Soda", "Shotgun", "Shells", "Bullets", "Medkit"}
+local items = {"Bat", "Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money", "Soda", "Shotgun", "Shells", "Bullets", "Medkit", "GPS"}
 
 -- Variabel untuk menyimpan posisi awal dan status ProximityPrompt
 local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
@@ -125,7 +125,7 @@ local Section = Tab:CreateSection("tools",true)
 -- Membuat tombol untuk setiap item
 for _, item in ipairs(items) do
     Tab:CreateButton({
-        Name = "Teleport to Farthest " .. item,
+        Name = "Teleport " .. item,
         Callback = function()
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
@@ -145,20 +145,20 @@ for _, item in ipairs(items) do
             -- Validasi folder Pickups
             local pickupsFolder = workspace:FindFirstChild("Pickups")
             if not pickupsFolder then
-                warn("workspace.Pickups not found.")
+                warn("workspace not found.")
                 return
             end
             
             -- Validasi keberadaan item di folder Pickups
             local toolPart = pickupsFolder:FindFirstChild(item)
             if not toolPart or not toolPart:IsA("MeshPart") then
-                warn(item .. " MeshPart not found in workspace.Pickups.")
+                warn(item .. "not found")
                 return
             end
             
             -- Teleportasi ke MeshPart
             humanoidRootPart.CFrame = toolPart.CFrame
-            print("Teleported to " .. item)
+            print("Teleported " .. item)
 
             -- Tunggu 0.2 detik agar karakter sampai ke MeshPart
             task.wait(0.2)
@@ -167,13 +167,9 @@ for _, item in ipairs(items) do
             if autoTriggerPrompt then
                 local proximityPrompt = toolPart:FindFirstChildOfClass("ProximityPrompt")
                 if proximityPrompt then
-                    print("Triggered ProximityPrompt for " .. item)
                     fireproximityprompt(proximityPrompt, 0) -- Gunakan angka 0 untuk input keyboard
                     task.wait(0) -- Tunggu selama 0.6 detik
                     fireproximityprompt(proximityPrompt, 1) -- Hentikan trigger dengan angka 1 (klik)
-                    print("Stopped ProximityPrompt for " .. item)
-                else
-                    warn("No ProximityPrompt found on " .. item)
                 end
             end
             
@@ -181,7 +177,6 @@ for _, item in ipairs(items) do
             if returnToOriginal and originalPosition then
                 wait(1) -- Delay sebelum kembali (opsional)
                 humanoidRootPart.CFrame = originalPosition
-                print("Returned to original position.")
                 
                 -- Drop item yang dipegang jika auto-drop aktif
                 if autoDropHeldItem then
@@ -191,7 +186,398 @@ for _, item in ipairs(items) do
         end,
     })
 end
-local Section = Tab:CreateSection("player",true)
+local autoTeleportToMoney = false
+local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
+local savedPosition = nil -- Posisi yang disimpan
+local Label = Tab:CreateLabel("Saved Position: None") -- Label untuk menampilkan posisi
+
+-- Membuat Toggle untuk auto-teleport ke Money
+Tab:CreateToggle({
+    Name = "Auto Get Money",
+    CurrentValue = false,
+    Flag = "AutoTeleportMoney",
+    Callback = function(Value)
+        autoTeleportToMoney = Value
+        print("Auto Teleport to Money:", autoTeleportToMoney)
+
+        if autoTeleportToMoney then
+            task.spawn(function()
+                while autoTeleportToMoney do
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character
+                    local humanoid = character and character:FindFirstChild("Humanoid")
+
+                    -- Hentikan jika health 0
+                    if not humanoid or humanoid.Health <= 0 then
+                        print("Health is 0. Stopping auto teleport.")
+                        autoTeleportToMoney = false
+                        break
+                    end
+
+                    -- Teleport dan trigger Money
+                    teleportAndTriggerMoney()
+                    task.wait(0.5) -- Delay untuk menghindari spam
+                end
+            end)
+        end
+    end,
+})
+
+-- Membuat Toggle untuk Auto Return Save Position
+Tab:CreateToggle({
+    Name = "Auto Return to Saved Position",
+    CurrentValue = false,
+    Flag = "AutoReturnSavePos",
+    Callback = function(Value)
+        autoReturnSavePos = Value
+        print("Auto Return Save Position:", autoReturnSavePos)
+    end,
+})
+
+-- Fungsi untuk teleport ke Money dan kembali sesuai toggle
+function teleportAndTriggerMoney()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+    -- Validasi keberadaan HumanoidRootPart
+    if not humanoidRootPart then
+        warn("HumanoidRootPart not found.")
+        return
+    end
+
+    -- Validasi folder Pickups
+    local pickupsFolder = workspace:FindFirstChild("Pickups")
+    if not pickupsFolder then
+        warn("workspace.Pickups not found.")
+        return
+    end
+
+    -- Validasi keberadaan Money
+    local moneyPart = pickupsFolder:FindFirstChild("Money")
+    if not moneyPart or not moneyPart:IsA("MeshPart") then
+        warn("Money MeshPart not found in workspace.Pickups.")
+        return
+    end
+
+    -- Simpan posisi awal sebelum teleport
+    local originalPosition = humanoidRootPart.CFrame
+
+    -- Teleportasi ke Money
+    humanoidRootPart.CFrame = moneyPart.CFrame
+    print("Teleported to Money.")
+
+    -- Tunggu sebentar agar karakter sampai ke Money
+    task.wait(0.2)
+
+    -- Memicu ProximityPrompt jika ada
+    local proximityPrompt = moneyPart:FindFirstChildOfClass("ProximityPrompt")
+    if proximityPrompt then
+        print("Triggered ProximityPrompt for Money.")
+        fireproximityprompt(proximityPrompt, 0) -- Trigger prompt
+        task.wait(0.1)
+        fireproximityprompt(proximityPrompt, 1) -- Lepas trigger
+    else
+        warn("No ProximityPrompt found on Money.")
+    end
+
+    -- Kembali ke posisi sesuai toggle
+    if autoReturnSavePos and savedPosition then
+        humanoidRootPart.CFrame = savedPosition
+        print("Returned to saved position.")
+    else
+        humanoidRootPart.CFrame = originalPosition
+        print("Returned to original position.")
+    end
+end
+
+-- Membuat Button untuk mendapatkan posisi karakter
+Tab:CreateButton({
+    Name = "Save Current Position",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+        if humanoidRootPart then
+            savedPosition = humanoidRootPart.CFrame
+            local positionText = string.format(
+                "X: %.2f, Y: %.2f, Z: %.2f",
+                savedPosition.Position.X,
+                savedPosition.Position.Y,
+                savedPosition.Position.Z
+            )
+            Label:Set("Saved Position: " .. positionText)
+            print("Saved Position:", savedPosition)
+        else
+            warn("HumanoidRootPart not found. Unable to save position.")
+        end
+    end,
+})
+local Section = Tab:CreateSection("sell",false)
+local autoSellAll = false -- Status toggle untuk Auto Sell All
+
+-- Fungsi untuk menjual semua item di Backpack
+local function sellAllItems()
+    local player = game.Players.LocalPlayer
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        warn("Backpack not found.")
+        return
+    end
+
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
+            print("Sold item:", item.Name)
+        end
+    end
+end
+
+-- Toggle untuk Auto Sell All
+Tab:CreateToggle({
+    Name = "Auto Sell All",
+    CurrentValue = false,
+    Flag = "AutoSellAllToggle",
+    Callback = function(value)
+        autoSellAll = value
+        print("Auto Sell All:", autoSellAll)
+
+        if autoSellAll then
+            -- Menjalankan loop untuk menjual semua item secara berkala
+            task.spawn(function()
+                while autoSellAll do
+                    sellAllItems()
+                    task.wait(1) -- Delay untuk menghindari spam
+                end
+            end)
+        end
+    end,
+})
+
+local selectedItems = {} -- Menyimpan item yang dipilih dari dropdown
+local sellSpecificSelected = false -- Status toggle untuk menjual item yang dipilih
+
+-- Daftar nama item tetap, termasuk GPS
+local predefinedItems = {
+    "Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun",
+    "Shells", "Lantern", "Crowbar", "Money", "Soda", "Food", "GPS"
+}
+
+-- Fungsi untuk menjual item berdasarkan nama
+local function sellItemByName(itemName)
+    local player = game.Players.LocalPlayer
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        warn("Backpack not found.")
+        return
+    end
+
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item.Name == itemName then
+            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
+            print("Sold item:", item.Name)
+            break -- Hentikan loop setelah item ditemukan dan dijual
+        end
+    end
+end
+
+-- Dropdown untuk memilih item yang akan dijual
+Tab:CreateDropdown({
+    Name = "Select Items to Sell",
+    Options = predefinedItems, -- Daftar nama item tetap
+    MultiSelection = true, -- Pastikan MultiSelection aktif
+    Flag = "SelectedItemsDropdown",
+    Callback = function(selected)
+        -- Pastikan `selected` selalu berupa tabel
+        if typeof(selected) == "string" then
+            selectedItems = {selected} -- Jika dropdown hanya mengembalikan satu string
+        else
+            selectedItems = selected -- Jika multi-seleksi, gunakan tabel langsung
+        end
+        print("Selected items to sell:", selectedItems)
+    end,
+})
+
+-- Toggle untuk menjual item yang dipilih di dropdown
+local Section Tab:CreateToggle({
+    Name = "Sell Specific Selected Items",
+    CurrentValue = false,
+    Flag = "SellSpecificSelectedToggle",
+    Callback = function(value)
+        sellSpecificSelected = value
+        print("Sell Specific Selected Items:", sellSpecificSelected)
+
+        if sellSpecificSelected then
+            -- Menjual semua item yang dipilih saat toggle diaktifkan
+            task.spawn(function()
+                while sellSpecificSelected do
+                    for _, itemName in ipairs(selectedItems) do
+                        sellItemByName(itemName)
+                    end
+                    task.wait(1) -- Delay untuk menghindari spam
+                end
+            end)
+        end
+    end,
+})
+local Section = Tab:CreateSection("buy",true)
+-- Membuat Button untuk MaxStamina
+Tab:CreateButton({
+    Name = "Purchase Max Stamina",
+    Callback = function()
+        local args = {
+            [1] = "MaxStamina"
+        }
+        game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+        print("Purchased Max Stamina")
+    end,
+})
+
+-- Membuat Button untuk StaminaRegen
+Tab:CreateButton({
+    Name = "Purchase Stamina Regen",
+    Callback = function()
+        local args = {
+            [1] = "StaminaRegen"
+        }
+        game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+        print("Purchased Stamina Regen")
+    end,
+})
+
+-- Membuat Button untuk Storage
+Tab:CreateButton({
+    Name = "Purchase Storage",
+    Callback = function()
+        local args = {
+            [1] = "Storage"
+        }
+        game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+        print("Purchased Storage")
+    end,
+})
+-- Fungsi untuk mencari semua item di toko dan otomatis membelinya
+local function autoBuyItem(itemName)
+    -- Mencari seluruh toko di Workspace.Buildings
+    for _, building in ipairs(workspace.Buildings:GetChildren()) do
+        if building:IsA("Model") and building:FindFirstChild("Nodes") then
+            local nodes = building:FindFirstChild("Nodes")
+            local room = nodes and nodes:FindFirstChild("Room")
+            local shop = room and room:FindFirstChild("Shop")
+            local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
+            local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
+
+            -- Validasi keberadaan folder item
+            if itemFolder then
+                local item = itemFolder:FindFirstChild(itemName)
+
+                if item and item:IsA("ValueBase") then
+                    local price = item.Value
+                    print("Found item:", itemName, "Price:", price)
+
+                    -- Menjalankan FireServer untuk membeli item
+                    local args = {
+                        [1] = item
+                    }
+                    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
+                    print("BuyItem event fired for", itemName)
+                    return
+                end
+            end
+        end
+    end
+
+    -- Jika tidak ditemukan
+    warn("Item", itemName, "not found in any Shop.")
+end
+
+-- Membuat tombol untuk membeli item secara otomatis
+local items = {"Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun", "Shells"}
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = "Buy " .. item,
+        Callback = function()
+            autoBuyItem(item)
+        end,
+    })
+end
+local Section = Tab:CreateSection("player", true)
+local RunService = game:GetService("RunService")
+local speaker = game.Players.LocalPlayer
+
+-- Variabel untuk menyimpan status toggle dan kecepatan
+local tpwalking = false
+local selectedSpeedMultiplier = 2 -- Default ×2 speed
+local speedBoostConnection -- Untuk menyimpan koneksi loop speed boost
+
+-- Dropdown untuk memilih × speed
+local Dropdown = Tab:CreateDropdown({
+    Name = "Speed Multiplier",
+    Options = {"×1", "×2", "×3", "×4", "×5", "×6", "×7"},
+    CurrentOption = "×2", -- Default opsi
+    MultiSelection = false, -- Nonaktifkan multi-pilihan
+    Flag = "SpeedMultiplierDropdown", -- Flag unik untuk dropdown
+    Callback = function(Option)
+        -- Ambil angka dari opsi yang dipilih
+        selectedSpeedMultiplier = tonumber(string.match(Option, "%d+"))
+        print("Selected Speed Multiplier:", selectedSpeedMultiplier)
+
+        -- Perbarui multiplier jika toggle aktif
+        if tpwalking then
+            deactivateSpeedBoost()
+            activateSpeedBoost(selectedSpeedMultiplier)
+        end
+    end,
+})
+
+-- Toggle untuk mengaktifkan atau menonaktifkan fungsi × speed
+local Toggle = Tab:CreateToggle({
+    Name = "Enable Speed Boost",
+    CurrentValue = false,
+    Flag = "SpeedBoostToggle", -- Flag unik untuk toggle
+    Callback = function(Value)
+        tpwalking = Value
+        if tpwalking then
+            print("Speed boost enabled")
+            activateSpeedBoost(selectedSpeedMultiplier)
+        else
+            print("Speed boost disabled")
+            deactivateSpeedBoost()
+        end
+    end,
+})
+
+-- Fungsi untuk mengaktifkan × speed
+function activateSpeedBoost(multiplier)
+    -- Hentikan loop sebelumnya jika ada
+    deactivateSpeedBoost()
+
+    -- Mulai loop baru
+    speedBoostConnection = RunService.Heartbeat:Connect(function(delta)
+        local chr = speaker.Character
+        local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+        
+        -- Validasi karakter dan humanoid
+        if not chr or not hum then
+            warn("Character or Humanoid not found.")
+            return
+        end
+
+        -- Percepat pergerakan jika ada input
+        if hum.MoveDirection.Magnitude > 0 then
+            chr:TranslateBy(hum.MoveDirection * multiplier * delta * 10)
+        end
+    end)
+end
+
+-- Fungsi untuk menghentikan × speed
+function deactivateSpeedBoost()
+    if speedBoostConnection then
+        speedBoostConnection:Disconnect()
+        speedBoostConnection = nil
+    end
+end
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
@@ -241,7 +627,36 @@ Tab:CreateButton({
         end
     end,
 })
+local autoSpawn = false -- Status toggle auto-spawn
 
+-- Membuat Toggle untuk Auto-Spawn
+Tab:CreateToggle({
+    Name = "Auto-Spawn",
+    CurrentValue = false,
+    Flag = "AutoSpawnToggle",
+    Callback = function(Value)
+        autoSpawn = Value
+        print("Auto-Spawn:", autoSpawn)
+
+        if autoSpawn then
+            task.spawn(function()
+                while autoSpawn do
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoid = character:FindFirstChild("Humanoid")
+
+                    -- Jika health pemain 0, respawn
+                    if humanoid and humanoid.Health <= 0 then
+                        game:GetService("ReplicatedStorage").Events.Spawn:FireServer()
+                        print("Auto-Spawn triggered.")
+                    end
+
+                    task.wait(1) -- Delay untuk menghindari spam
+                end
+            end)
+        end
+    end,
+})
 -- Toggle status
 local espActive = false
 local displayName = false
@@ -591,7 +1006,7 @@ end
 -- Buat tombol
 Tab:CreateButton({
     Name = "Rejoin Server",
-    Interact = "Click",
+    Interact = "Click log saved",
     Callback = function()
         -- Debug: Cetak klik tombon
 
@@ -622,7 +1037,7 @@ Tab:CreateButton({
 
 Tab:CreateButton({
     Name = "Infinite Yield",
-    Interact = "Click",
+    Interact = "Click run another script",
     Callback = function()
         -- Eksekusi script Infinite Yield
         local success, err = pcall(function()
@@ -637,7 +1052,7 @@ Tab:CreateButton({
 })
 
 Tab:CreateButton({
-    Name = "Clear TreesNo",
+    Name = "Clear Trees",
     Interact = "Click",
     Callback = function()
         -- Periksa apakah path workspace.TreesNo ada
