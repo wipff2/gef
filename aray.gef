@@ -36,4 +36,623 @@ local Window = ArrayField:CreateWindow({
    }
 })
 
+Window:Prompt({
+    Title = 'Interface Prompt',
+    SubTitle = 'SubTitle',
+    Content = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    Actions = {
+        Accept = {
+            Name = 'Accept',
+            Callback = function()
+                print('Pressed')
+            end,
+        }
+    }
+})
+
+local Tab = Window:CreateTab("top", 4483362458) -- Title, Image
+-- Membuat Tab untuk Tools
+ -- The 2nd argument is to tell if its only a Title and doesnt contain element
+-- Membuat Tab untuk Tools
+
+-- Membuat Section untuk metode teleport
+local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
+
+-- Daftar nama tools
+local items = {"Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money", "Soda", "Shotgun", "Shells", "Bullets", "Medkit"}
+
+-- Variabel untuk menyimpan posisi awal dan status ProximityPrompt
+local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
+local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
+local originalPosition = nil -- Posisi awal pemain
+
+-- Membuat Toggle untuk kembali ke posisi awal
+Tab:CreateToggle({
+    Name = "Return to Original Position",
+    CurrentValue = false,
+    Flag = "ReturnToggle",
+    Callback = function(Value)
+        returnToOriginal = Value
+        print("Return to Original Position:", returnToOriginal)
+    end,
+})
+
+-- Membuat Toggle untuk auto-trigger ProximityPrompt
+Tab:CreateToggle({
+    Name = "Auto Trigger ProximityPrompt",
+    CurrentValue = false,
+    Flag = "AutoTriggerPromptToggle",
+    Callback = function(Value)
+        autoTriggerPrompt = Value
+        print("Auto Trigger ProximityPrompt:", autoTriggerPrompt)
+    end,
+})
+local autoDropHeldItem = false
+
+-- Membuat Toggle untuk auto-drop item yang dipegang
+Tab:CreateToggle({
+    Name = "Auto Drop Held Item",
+    CurrentValue = false,
+    Flag = "AutoDropHeldItemToggle",
+    Callback = function(Value)
+        autoDropHeldItem = Value
+        print("Auto Drop Held Item:", autoDropHeldItem)
+    end,
+})
+
+-- Fungsi untuk drop item yang sedang dipegang
+local function dropHeldItem()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+
+    -- Cek tool di tangan pemain
+    local heldTool = character:FindFirstChildOfClass("Tool")
+    if not heldTool then
+        print("No held item found.")
+        return
+    end
+
+    -- Memanggil event DropItem
+    local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
+    if dropItemEvent then
+        dropItemEvent:FireServer(heldTool)
+        print("Dropped held item:", heldTool.Name)
+    else
+        warn("DropItem event not found in ReplicatedStorage.Events.")
+    end
+end
+local Section = Tab:CreateSection("tools",true)
+-- Membuat tombol untuk setiap item
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = "Teleport to Farthest " .. item,
+        Callback = function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            -- Validasi keberadaan HumanoidRootPart
+            if not humanoidRootPart then
+                warn("HumanoidRootPart not found.")
+                return
+            end
+            
+            -- Menyimpan posisi awal jika toggle aktif
+            if returnToOriginal then
+                originalPosition = humanoidRootPart.CFrame
+            end
+            
+            -- Validasi folder Pickups
+            local pickupsFolder = workspace:FindFirstChild("Pickups")
+            if not pickupsFolder then
+                warn("workspace.Pickups not found.")
+                return
+            end
+            
+            -- Validasi keberadaan item di folder Pickups
+            local toolPart = pickupsFolder:FindFirstChild(item)
+            if not toolPart or not toolPart:IsA("MeshPart") then
+                warn(item .. " MeshPart not found in workspace.Pickups.")
+                return
+            end
+            
+            -- Teleportasi ke MeshPart
+            humanoidRootPart.CFrame = toolPart.CFrame
+            print("Teleported to " .. item)
+
+            -- Tunggu 0.2 detik agar karakter sampai ke MeshPart
+            task.wait(0.2)
+
+            -- Memicu ProximityPrompt jika ada dan toggle aktif
+            if autoTriggerPrompt then
+                local proximityPrompt = toolPart:FindFirstChildOfClass("ProximityPrompt")
+                if proximityPrompt then
+                    print("Triggered ProximityPrompt for " .. item)
+                    fireproximityprompt(proximityPrompt, 0) -- Gunakan angka 0 untuk input keyboard
+                    task.wait(0) -- Tunggu selama 0.6 detik
+                    fireproximityprompt(proximityPrompt, 1) -- Hentikan trigger dengan angka 1 (klik)
+                    print("Stopped ProximityPrompt for " .. item)
+                else
+                    warn("No ProximityPrompt found on " .. item)
+                end
+            end
+            
+            -- Kembali ke posisi awal jika toggle aktif
+            if returnToOriginal and originalPosition then
+                wait(1) -- Delay sebelum kembali (opsional)
+                humanoidRootPart.CFrame = originalPosition
+                print("Returned to original position.")
+                
+                -- Drop item yang dipegang jika auto-drop aktif
+                if autoDropHeldItem then
+                    dropHeldItem()
+                end
+            end
+        end,
+    })
+end
+local Section = Tab:CreateSection("player",true)
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+Tab:CreateButton({
+    Name = "Teleport Random Player",
+    Interact = "Click",
+    Callback = function()
+        -- Ambil daftar pemain
+        local allPlayers = Players:GetPlayers()
+        local localPlayer = Players.LocalPlayer
+
+        -- Hapus diri sendiri dari daftar
+        for i, player in ipairs(allPlayers) do
+            if player == localPlayer then
+                table.remove(allPlayers, i)
+                break
+            end
+        end
+
+        -- Filter pemain dengan health > 0
+        local validPlayers = {}
+        for _, player in ipairs(allPlayers) do
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                local health = player.Character.Humanoid.Health
+                if health > 0 then
+                    table.insert(validPlayers, player)
+                end
+            end
+        end
+
+        -- Jika tidak ada pemain yang valid, beri peringatan
+        if #validPlayers == 0 then
+            warn("No valid players to teleport to.")
+            return
+        end
+
+        -- Pilih pemain secara acak
+        local randomPlayer = validPlayers[math.random(1, #validPlayers)]
+
+        -- Teleportasi ke posisi pemain yang dipilih
+        if randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPosition = randomPlayer.Character.HumanoidRootPart.Position
+            localPlayer.Character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
+            print("Teleported to:", randomPlayer.Name)
+        else
+            warn("Failed to teleport. Target player does not have a valid position.")
+        end
+    end,
+})
+
+-- Toggle status
+local espActive = false
+local displayName = false
+local displayHealth = false
+local displayDistance = false
+
+-- Tabel untuk menyimpan ESP yang dibuat
+local espElements = {}
+
+-- Fungsi untuk memperbarui warna berdasarkan health
+local function getHealthColor(health)
+    if health <= 10 then
+        return Color3.fromRGB(255, 0, 0) -- Merah
+    elseif health <= 60 then
+        return Color3.fromRGB(255, 165, 0) -- Orange
+    else
+        return Color3.fromRGB(0, 255, 0) -- Hijau
+    end
+end
+
+-- Fungsi untuk membuat atau memperbarui ESP
+local function createOrUpdateESP(player)
+    if player == game.Players.LocalPlayer then return end -- Hindari ESP untuk pemain lokal
+
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoidRootPart or not humanoid then return end
+
+    -- Jika ESP belum ada, buat BillboardGui baru
+    if not espElements[player] then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = humanoidRootPart
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.AlwaysOnTop = true
+        billboard.Name = "PlayerESP"
+
+        -- Tambahkan label untuk nama
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextScaled = true
+        nameLabel.Parent = billboard
+
+        -- Tambahkan label untuk health
+        local healthLabel = Instance.new("TextLabel")
+        healthLabel.Name = "HealthLabel"
+        healthLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        healthLabel.Position = UDim2.new(0, 0, 0.3, 0)
+        healthLabel.BackgroundTransparency = 1
+        healthLabel.TextScaled = true
+        healthLabel.Parent = billboard
+
+        -- Tambahkan label untuk jarak
+        local distanceLabel = Instance.new("TextLabel")
+        distanceLabel.Name = "DistanceLabel"
+        distanceLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        distanceLabel.Position = UDim2.new(0, 0, 0.6, 0)
+        distanceLabel.BackgroundTransparency = 1
+        distanceLabel.TextScaled = true
+        distanceLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+        distanceLabel.Parent = billboard
+
+        billboard.Parent = humanoidRootPart
+        espElements[player] = billboard
+    end
+
+    -- Perbarui konten ESP
+    local billboard = espElements[player]
+    if displayName and espActive then
+        billboard.NameLabel.Text = player.Name
+        billboard.NameLabel.Visible = true
+    else
+        billboard.NameLabel.Visible = false
+    end
+
+    if displayHealth and espActive then
+        billboard.HealthLabel.Text = "Health: " .. math.floor(humanoid.Health)
+        billboard.HealthLabel.TextColor3 = getHealthColor(humanoid.Health)
+        billboard.HealthLabel.Visible = true
+    else
+        billboard.HealthLabel.Visible = false
+    end
+
+    if displayDistance and espActive then
+        local localPlayer = game.Players.LocalPlayer
+        local distance = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+                         (localPlayer.Character.HumanoidRootPart.Position - humanoidRootPart.Position).Magnitude or 0
+        billboard.DistanceLabel.Text = "Distance: " .. math.floor(distance)
+        billboard.DistanceLabel.Visible = true
+    else
+        billboard.DistanceLabel.Visible = false
+    end
+end
+
+-- Tambahkan toggle untuk menampilkan inventory
+local displayInventory = false
+
+-- Fungsi untuk mendapatkan nilai inventory
+local function getInventoryValue(player)
+    local stats = workspace:FindFirstChild(player.Name) and workspace[player.Name]:FindFirstChild("Stats")
+    local inventory = stats and stats:FindFirstChild("Inventory")
+    return inventory and inventory.Value or "N/A"
+end
+
+-- Modifikasi fungsi untuk membuat atau memperbarui ESP
+local function createOrUpdateESP(player)
+    if player == game.Players.LocalPlayer then return end -- Hindari ESP untuk pemain lokal
+
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoidRootPart or not humanoid then return end
+
+    -- Jika ESP belum ada, buat BillboardGui baru
+    if not espElements[player] then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = humanoidRootPart
+        billboard.Size = UDim2.new(0, 200, 0, 70) -- Perbesar ukuran untuk inventory
+        billboard.AlwaysOnTop = true
+        billboard.Name = "PlayerESP"
+
+        -- Tambahkan label untuk nama
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, 0, 0.2, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextScaled = true
+        nameLabel.Parent = billboard
+
+        -- Tambahkan label untuk health
+        local healthLabel = Instance.new("TextLabel")
+        healthLabel.Name = "HealthLabel"
+        healthLabel.Size = UDim2.new(1, 0, 0.2, 0)
+        healthLabel.Position = UDim2.new(0, 0, 0.2, 0)
+        healthLabel.BackgroundTransparency = 1
+        healthLabel.TextScaled = true
+        healthLabel.Parent = billboard
+
+        -- Tambahkan label untuk jarak
+        local distanceLabel = Instance.new("TextLabel")
+        distanceLabel.Name = "DistanceLabel"
+        distanceLabel.Size = UDim2.new(1, 0, 0.2, 0)
+        distanceLabel.Position = UDim2.new(0, 0, 0.4, 0)
+        distanceLabel.BackgroundTransparency = 1
+        distanceLabel.TextScaled = true
+        distanceLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+        distanceLabel.Parent = billboard
+
+        -- Tambahkan label untuk inventory
+        local inventoryLabel = Instance.new("TextLabel")
+        inventoryLabel.Name = "InventoryLabel"
+        inventoryLabel.Size = UDim2.new(1, 0, 0.2, 0)
+        inventoryLabel.Position = UDim2.new(0, 0, 0.6, 0)
+        inventoryLabel.BackgroundTransparency = 1
+        inventoryLabel.TextScaled = true
+        inventoryLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+        inventoryLabel.Parent = billboard
+
+        billboard.Parent = humanoidRootPart
+        espElements[player] = billboard
+    end
+
+    -- Perbarui konten ESP
+    local billboard = espElements[player]
+    if displayName and espActive then
+        billboard.NameLabel.Text = player.Name
+        billboard.NameLabel.Visible = true
+    else
+        billboard.NameLabel.Visible = false
+    end
+
+    if displayHealth and espActive then
+        billboard.HealthLabel.Text = "Health: " .. math.floor(humanoid.Health)
+        billboard.HealthLabel.TextColor3 = getHealthColor(humanoid.Health)
+        billboard.HealthLabel.Visible = true
+    else
+        billboard.HealthLabel.Visible = false
+    end
+
+    if displayDistance and espActive then
+        local localPlayer = game.Players.LocalPlayer
+        local distance = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+                         (localPlayer.Character.HumanoidRootPart.Position - humanoidRootPart.Position).Magnitude or 0
+        billboard.DistanceLabel.Text = "Distance: " .. math.floor(distance)
+        billboard.DistanceLabel.Visible = true
+    else
+        billboard.DistanceLabel.Visible = false
+    end
+
+    if displayInventory and espActive then
+        billboard.InventoryLabel.Text = "Inventory: " .. getInventoryValue(player)
+        billboard.InventoryLabel.Visible = true
+    else
+        billboard.InventoryLabel.Visible = false
+    end
+end
+
+-- Fungsi untuk menghapus semua ESP
+local function removeAllESP()
+    for player, billboard in pairs(espElements) do
+        if billboard then
+            billboard:Destroy()
+        end
+    end
+    espElements = {} -- Reset tabel ESP
+end
+
+-- Toggle ESP
+Tab:CreateToggle({
+    Name = "Enable ESP",
+    CurrentValue = false,
+    Flag = "EnableESP",
+    Callback = function(Value)
+        espActive = Value
+        if not espActive then
+            removeAllESP()
+        else
+            for _, player in pairs(game.Players:GetPlayers()) do
+                createOrUpdateESP(player)
+            end
+        end
+    end,
+})
+
+-- Toggle nama
+Tab:CreateToggle({
+    Name = "Display Name",
+    CurrentValue = false,
+    Flag = "DisplayName",
+    Callback = function(Value)
+        displayName = Value
+        if espActive then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                createOrUpdateESP(player)
+            end
+        end
+    end,
+})
+
+-- Toggle health
+Tab:CreateToggle({
+    Name = "Display Health",
+    CurrentValue = false,
+    Flag = "DisplayHealth",
+    Callback = function(Value)
+        displayHealth = Value
+        if espActive then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                createOrUpdateESP(player)
+            end
+        end
+    end,
+})
+
+-- Toggle jarak
+Tab:CreateToggle({
+    Name = "Display Distance",
+    CurrentValue = false,
+    Flag = "DisplayDistance",
+    Callback = function(Value)
+        displayDistance = Value
+        if espActive then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                createOrUpdateESP(player)
+            end
+        end
+    end,
+})
+
+-- Toggle untuk menampilkan inventory
+Tab:CreateToggle({
+    Name = "Display Inventory",
+    CurrentValue = false,
+    Flag = "DisplayInventory",
+    Callback = function(Value)
+        displayInventory = Value
+        if espActive then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                createOrUpdateESP(player)
+            end
+        end
+    end,
+})
+
+-- Update loop untuk memperbarui ESP secara terus-menerus
+game:GetService("RunService").RenderStepped:Connect(function()
+    if espActive then
+        for _, player in pairs(game.Players:GetPlayers()) do
+            createOrUpdateESP(player)
+        end
+    end
+end)
+
+local Tab = Window:CreateTab("msc", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("server",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local currentPlaceId = game.PlaceId -- ID tempat saat ini
+local currentJobId = game.JobId -- ID server saat ini
+
+-- Fungsi untuk mendapatkan waktu saat ini dalam format yang sesuai
+local function getCurrentDateTime()
+    local date = os.date("*t") -- Ambil waktu saat ini
+    return string.format("%04d-%02d-%02d_%02d-%02d-%02d", date.year, date.month, date.day, date.hour, date.min, date.sec)
+end
+
+-- Fungsi untuk membuat file log
+local function createLogFile(errorMessage)
+    -- Dapatkan nama file berdasarkan waktu saat ini
+    local fileName = getCurrentDateTime() .. ".lua"
+    local folderPath = "ArrayField/logserver/"
+    local fullPath = folderPath .. fileName
+
+    -- Pastikan folder ada (membuat folder jika belum ada)
+    if not isfolder("ArrayField") then
+        makefolder("ArrayField")
+    end
+    if not isfolder(folderPath) then
+        makefolder(folderPath)
+    end
+
+    -- Isi file dengan log teleport dan error (jika ada)
+    local fileContent = string.format(
+        "-- Log teleport\nlocal placeId = %d\nlocal jobId = \"%s\"\n\n",
+        currentPlaceId,
+        currentJobId
+    )
+    if errorMessage then
+        fileContent = fileContent .. string.format("-- Error:\n%s\n", errorMessage)
+    end
+
+    -- Simpan file
+    writefile(fullPath, fileContent)
+    print("Log file created at:", fullPath)
+end
+
+-- Buat tombol
+Tab:CreateButton({
+    Name = "Rejoin Server",
+    Interact = "Click",
+    Callback = function()
+        -- Debug: Cetak klik tombon
+
+        -- Cek variabel penting
+        if not currentPlaceId or not currentJobId or not player then
+            local errorMessage = "Teleport failed: Missing required data."
+            warn(errorMessage)
+            createLogFile(errorMessage)
+            return
+        end
+
+        -- Panggil teleport dengan pcall
+        local success, err = pcall(function()
+            TeleportService:TeleportToPlaceInstance(currentPlaceId, currentJobId, player)
+        end)
+
+        -- Tangani jika teleport gagal atau berhasil
+        if not success then
+            local errorMessage = "Teleport failed: " .. tostring(err)
+            warn(errorMessage)
+            createLogFile(errorMessage)
+        else
+            print("Teleport")
+            createLogFile() -- Buat log tanpa error
+        end
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Infinite Yield",
+    Interact = "Click",
+    Callback = function()
+        -- Eksekusi script Infinite Yield
+        local success, err = pcall(function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+        end)
+
+        -- Tangani jika terjadi error
+        if not success then
+            warn("Failed to execute Infinite Yield:", err)
+        end
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Clear TreesNo",
+    Interact = "Click",
+    Callback = function()
+        -- Periksa apakah path workspace.TreesNo ada
+        local treesNo = workspace:FindFirstChild("TreesNo")
+        if treesNo then
+            -- Hapus semua children dari TreesNo
+            for _, child in ipairs(treesNo:GetChildren()) do
+                child:Destroy()
+            end
+            print("Trees clear.")
+        else
+            warn("workspace.TreesNo does not exist.")
+        end
+    end,
+})
+
+
 ArrayField:LoadConfiguration() --di bagian bawah semua kode
