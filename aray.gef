@@ -1475,7 +1475,50 @@ Tab:CreateButton({
         end
     end,
 })
+local UserSettings = UserSettings()
+local UserGameSettings = UserSettings:GetService("UserGameSettings")
+local shiftLockLoop = nil -- Menyimpan koneksi loop
+local shiftLockEnabled = false -- Status toggle Shift Lock
 
+-- Fungsi untuk mengatur Shift Lock
+local function setShiftLock(value)
+    if value then
+        UserGameSettings.RotationType = Enum.RotationType.CameraRelative
+        print("Shift Lock Enabled")
+    else
+        UserGameSettings.RotationType = Enum.RotationType.MovementRelative
+        print("Shift Lock Disabled")
+    end
+end
+
+-- Fungsi loop Shift Lock
+local function shiftLockHandler()
+    while shiftLockEnabled do
+        setShiftLock(true)
+        task.wait(0.1) -- Interval loop
+    end
+end
+
+-- Membuat toggle untuk Shift Lock
+Tab:CreateToggle({
+    Name = "Enable Shift Lock",
+    CurrentValue = false,
+    Flag = "ShiftLockToggle",
+    Callback = function(Value)
+        shiftLockEnabled = Value
+
+        if shiftLockEnabled then
+            if not shiftLockLoop then
+                shiftLockLoop = task.spawn(shiftLockHandler)
+            end
+        else
+            if shiftLockLoop then
+                shiftLockLoop = nil
+            end
+            setShiftLock(false)
+        end
+    end,
+})
 Tab:CreateButton({
     Name = "Clear Trees",
     Interact = "Click",
