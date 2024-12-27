@@ -1,0 +1,124 @@
+local heightIncrement = 0.5 -- Increment ketinggian per iterasi
+local wallHeight = 10 -- Tinggi tembok (relatif terhadap pemain)
+local character = game.Players.LocalPlayer.Character
+local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
+local wallDistance = 10 -- Jarak tembok dari pemain
+local plankSize = Vector3.new(4, 1, 0.5) -- Ukuran plank
+local plankGap = 0.5 -- Jarak antar plank
+local doorSize = Vector3.new(4, 6, 0.5) -- Ukuran pintu (lebar, tinggi, ketebalan)
+local doors = {} -- Menyimpan posisi pintu
+
+-- Ambil ketinggian dasar dari posisi pemain
+local baseHeight = math.floor(startPosition.Y)
+
+-- Fungsi untuk membuat plank
+local function buildPlank(startPos, endPos)
+    local args = {
+        [1] = startPos,
+        [2] = endPos,
+        [3] = workspace.Road.Part,
+        [4] = workspace.Road.Part,
+        [5] = Vector3.new(0, 1, 0)
+    }
+    game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
+end
+
+-- Fungsi untuk membangun tembok dengan pintu
+local function buildWallWithDoor(corner1, corner2, height, doorPositions)
+    local xStart = math.min(corner1.X, corner2.X)
+    local xEnd = math.max(corner1.X, corner2.X)
+    local zStart = math.min(corner1.Z, corner2.Z)
+    local zEnd = math.max(corner1.Z, corner2.Z)
+
+    local currentHeight = baseHeight -- Mulai dari ketinggian dasar
+    while currentHeight <= baseHeight + height do
+        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
+            for z = zStart, zEnd, plankSize.Z + plankGap do
+                local startPlank = Vector3.new(xStart, currentHeight, z)
+                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions) do
+                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
+            end
+        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
+            for x = xStart, xEnd, plankSize.X + plankGap do
+                local startPlank = Vector3.new(x, currentHeight, zStart)
+                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions) do
+                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
+            end
+        end
+        currentHeight = currentHeight + heightIncrement
+        wait(0.1) -- Untuk mengurangi lag
+    end
+end
+
+-- Fungsi untuk membangun lantai atau atap
+local function buildFloorOrRoof(corner1, corner2, height)
+    local xStart = math.min(corner1.X, corner2.X)
+    local xEnd = math.max(corner1.X, corner2.X)
+    local zStart = math.min(corner1.Z, corner2.Z)
+    local zEnd = math.max(corner1.Z, corner2.Z)
+
+    for x = xStart, xEnd, plankSize.X + plankGap do
+        for z = zStart, zEnd, plankSize.Z + plankGap do
+            local startPlank = Vector3.new(x, height, z)
+            local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
+            buildPlank(startPlank, endPlank)
+        end
+        wait(0.1)
+    end
+end
+
+-- Hitung posisi sudut rumah
+local corners = {
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 1
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 2
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), -- Sudut 3
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  -- Sudut 4
+}
+
+-- Tentukan posisi pintu
+doors = {
+    Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2), -- Pintu pada tembok pertama
+    Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) -- Pintu pada tembok kedua
+}
+
+-- Bangun tembok dengan pintu
+for i = 1, #corners do
+    local startCorner = corners[i]
+    local endCorner = corners[(i % #corners) + 1]
+    local doorPositions = {}
+
+    -- Tambahkan pintu hanya untuk dinding dengan pintu
+    if i == 1 then
+        table.insert(doorPositions, doors[1])
+    elseif i == 2 then
+        table.insert(doorPositions, doors[2])
+    end
+
+    buildWallWithDoor(startCorner, endCorner, wallHeight, doorPositions)
+end
+
+-- Bangun atap
+buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
+
+-- Bangun lantai
+buildFloorOrRoof(corners[1], corners[3], baseHeight)
