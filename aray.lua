@@ -51,13 +51,6 @@ Window:Prompt({
 })
 
 local Tab = Window:CreateTab("top", 4483362458) -- Title, Image
--- Membuat Tab untuk Tools
- -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Membuat Tab untuk Tools
-
--- Membuat Section untuk metode teleport
-local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
-
 -- Daftar nama tools
 local items = {"Bat", "Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money", "Soda", "Shotgun", "Shells", "Bullets", "Medkit", "GPS"}
 
@@ -84,7 +77,6 @@ Tab:CreateToggle({
     Flag = "AutoTriggerPromptToggle",
     Callback = function(Value)
         autoTriggerPrompt = Value
-        print("Auto Trigger ProximityPrompt:", autoTriggerPrompt)
     end,
 })
 local autoDropHeldItem = false
@@ -96,7 +88,6 @@ Tab:CreateToggle({
     Flag = "AutoDropHeldItemToggle",
     Callback = function(Value)
         autoDropHeldItem = Value
-        print("Auto Drop Held Item:", autoDropHeldItem)
     end,
 })
 
@@ -108,7 +99,7 @@ local function dropHeldItem()
     -- Cek tool di tangan pemain
     local heldTool = character:FindFirstChildOfClass("Tool")
     if not heldTool then
-        print("No held item found.")
+        print("No found.")
         return
     end
 
@@ -116,9 +107,6 @@ local function dropHeldItem()
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
     if dropItemEvent then
         dropItemEvent:FireServer(heldTool)
-        print("Dropped held item:", heldTool.Name)
-    else
-        warn("DropItem event not found in ReplicatedStorage.Events.")
     end
 end
 local Section = Tab:CreateSection("tools",true)
@@ -158,8 +146,7 @@ for _, item in ipairs(items) do
             
             -- Teleportasi ke MeshPart
             humanoidRootPart.CFrame = toolPart.CFrame
-            print("Teleported to " .. item)
-
+            print("Teleport")
             -- Tunggu 0.2 detik agar karakter sampai ke MeshPart
             task.wait(0.2)
 
@@ -173,14 +160,11 @@ for _, item in ipairs(items) do
                 fireproximityprompt(proximityPrompt, 0) -- Gunakan angka 0 untuk input keyboard
                 task.wait(0.1) -- Tunggu singkat untuk pemrosesan
                 fireproximityprompt(proximityPrompt, 1) -- Hentikan trigger dengan angka 1
-                print("Triggered ProximityPrompt for " .. item)
-            else
-                warn("No ProximityPrompt found on " .. item)
             end
             
             -- Kembali ke posisi awal jika toggle aktif
             if returnToOriginal and originalPosition then
-                wait(1) -- Delay sebelum kembali (opsional)
+                wait(0.6) -- Delay sebelum kembali (opsional)
                 humanoidRootPart.CFrame = originalPosition
                 
                 -- Drop item yang dipegang jika auto-drop aktif
@@ -203,7 +187,6 @@ Tab:CreateToggle({
     Flag = "AutoTeleportMoney",
     Callback = function(Value)
         autoTeleportToMoney = Value
-        print("Auto Teleport to Money:", autoTeleportToMoney)
 
         if autoTeleportToMoney then
             task.spawn(function()
@@ -214,7 +197,6 @@ Tab:CreateToggle({
 
                     -- Hentikan jika health 0
                     if not humanoid or humanoid.Health <= 0 then
-                        print("Health is 0. Stopping auto teleport.")
                         autoTeleportToMoney = false
                         break
                     end
@@ -235,7 +217,6 @@ Tab:CreateToggle({
     Flag = "AutoReturnSavePos",
     Callback = function(Value)
         autoReturnSavePos = Value
-        print("Auto Return Save Position:", autoReturnSavePos)
     end,
 })
 
@@ -270,7 +251,6 @@ function teleportAndTriggerMoney()
 
     -- Teleportasi ke Money
     humanoidRootPart.CFrame = moneyPart.CFrame
-    print("Teleported to Money.")
 
     -- Tunggu sebentar agar karakter sampai ke Money
     task.wait(0.2)
@@ -282,21 +262,16 @@ function teleportAndTriggerMoney()
         proximityPrompt.RequiresLineOfSight = false
         proximityPrompt.MaxActivationDistance = math.huge -- Set ke jarak tak terbatas
 
-        print("Triggered ProximityPrompt for Money.")
         fireproximityprompt(proximityPrompt, 0) -- Trigger prompt
         task.wait(0.1)
         fireproximityprompt(proximityPrompt, 1) -- Lepas trigger
-    else
-        warn("No ProximityPrompt found on Money.")
     end
 
     -- Kembali ke posisi sesuai toggle
     if autoReturnSavePos and savedPosition then
         humanoidRootPart.CFrame = savedPosition
-        print("Returned to saved position.")
     else
         humanoidRootPart.CFrame = originalPosition
-        print("Returned to original position.")
     end
 end
 
@@ -316,10 +291,6 @@ Tab:CreateButton({
                 savedPosition.Position.Y,
                 savedPosition.Position.Z
             )
-            Label:Set("Saved Position: " .. positionText)
-            print("Saved Position:", savedPosition)
-        else
-            warn("HumanoidRootPart not found. Unable to save position.")
         end
     end,
 })
@@ -336,7 +307,6 @@ Tab:CreateToggle({
     Callback = function(Value)
         InfJumpEnabled = Value
         if InfJumpEnabled then
-            print("Infinite Jump Enabled")
             local UserInputService = game:GetService("UserInputService")
             UserInputService.JumpRequest:Connect(function()
                 if InfJumpEnabled then
@@ -348,8 +318,6 @@ Tab:CreateToggle({
                     end
                 end
             end)
-        else
-            print("Infinite Jump Disabled")
         end
     end,
 })
@@ -365,7 +333,6 @@ Tab:CreateToggle({
     Callback = function(Value)
         Clip = not Value -- Membalikkan status Clip
         if Value then
-            print("Noclip Enabled")
             -- Loop untuk menonaktifkan CanCollide pada semua BasePart
             local function NoclipLoop()
                 local speaker = game.Players.LocalPlayer
@@ -380,7 +347,6 @@ Tab:CreateToggle({
             -- Memulai loop Noclip
             Noclipping = game:GetService("RunService").Stepped:Connect(NoclipLoop)
         else
-            print("Noclip Disabled")
             if Noclipping then
                 Noclipping:Disconnect()
                 Noclipping = nil
@@ -419,7 +385,6 @@ local Dropdown = Tab:CreateDropdown({
     Callback = function(Option)
         -- Ambil angka dari opsi yang dipilih
         selectedSpeedMultiplier = tonumber(string.match(Option, "%d+"))
-        print("Selected Speed Multiplier:", selectedSpeedMultiplier)
 
         -- Perbarui multiplier jika toggle aktif
         if tpwalking then
@@ -437,10 +402,8 @@ local Toggle = Tab:CreateToggle({
     Callback = function(Value)
         tpwalking = Value
         if tpwalking then
-            print("Speed boost enabled")
             activateSpeedBoost(selectedSpeedMultiplier)
         else
-            print("Speed boost disabled")
             deactivateSpeedBoost()
         end
     end,
@@ -610,7 +573,7 @@ Tab:CreateButton({
             localPlayer.Character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
             print("Teleported to:", randomPlayer.Name)
         else
-            warn("Failed to teleport. Target player does not have a valid position.")
+            warn("Failed teleport. Target player valid position.")
         end
     end,
 })
@@ -623,7 +586,6 @@ Tab:CreateToggle({
     Flag = "AutoSpawnToggle",
     Callback = function(Value)
         autoSpawn = Value
-        print("Auto-Spawn:", autoSpawn)
 
         if autoSpawn then
             task.spawn(function()
@@ -635,7 +597,6 @@ Tab:CreateToggle({
                     -- Jika health pemain 0, respawn
                     if humanoid and humanoid.Health <= 0 then
                         game:GetService("ReplicatedStorage").Events.Spawn:FireServer()
-                        print("Auto-Spawn triggered.")
                     end
 
                     task.wait(1) -- Delay untuk menghindari spam
@@ -1060,9 +1021,6 @@ Tab:CreateToggle({
     Callback = function(value)
         espMiniGEFEnabled = value
         if value then
-            print("ESP Mini GEF enabled")
-        else
-            print("ESP Mini GEF disabled")
         end
     end,
 })
@@ -1075,9 +1033,6 @@ Tab:CreateToggle({
     Callback = function(value)
         espTinyGEFEnabled = value
         if value then
-            print("ESP Tiny GEF enabled")
-        else
-            print("ESP Tiny GEF disabled")
         end
     end,
 })
@@ -1362,7 +1317,7 @@ local function autoBuyItem(itemName)
                         [1] = item
                     }
                     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
-                    print("BuyItem event fired for", itemName)
+                    print("BuyItem for", itemName)
                     return
                 end
             end
@@ -1425,7 +1380,7 @@ local function createLogFile(errorMessage)
 
     -- Simpan file
     writefile(fullPath, fileContent)
-    print("Log file created at:", fullPath)
+    print("file created:", fullPath)
 end
 
 -- Buat tombol
@@ -1484,10 +1439,8 @@ local shiftLockEnabled = false -- Status toggle Shift Lock
 local function setShiftLock(value)
     if value then
         UserGameSettings.RotationType = Enum.RotationType.CameraRelative
-        print("Shift Lock Enabled")
     else
         UserGameSettings.RotationType = Enum.RotationType.MovementRelative
-        print("Shift Lock Disabled")
     end
 end
 
@@ -1531,8 +1484,6 @@ Tab:CreateButton({
                 child:Destroy()
             end
             print("Trees clear.")
-        else
-            warn("workspace.TreesNo does not exist.")
         end
     end,
 })
