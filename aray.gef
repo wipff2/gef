@@ -65,7 +65,7 @@ local originalPosition = nil -- Posisi awal pemain
 
 -- Membuat Toggle untuk kembali ke posisi awal
 Tab:CreateToggle({
-    Name = "Return to Original Position",
+    Name = "Auto Return to Position",
     CurrentValue = false,
     Flag = "ReturnToggle",
     Callback = function(Value)
@@ -76,7 +76,7 @@ Tab:CreateToggle({
 
 -- Membuat Toggle untuk auto-trigger ProximityPrompt
 Tab:CreateToggle({
-    Name = "Auto Trigger ProximityPrompt",
+    Name = "Auto pick items",
     CurrentValue = false,
     Flag = "AutoTriggerPromptToggle",
     Callback = function(Value)
@@ -88,7 +88,7 @@ local autoDropHeldItem = false
 
 -- Membuat Toggle untuk auto-drop item yang dipegang
 Tab:CreateToggle({
-    Name = "Auto Drop Hold Item",
+    Name = "Auto Drop Items",
     CurrentValue = false,
     Flag = "AutoDropHeldItemToggle",
     Callback = function(Value)
@@ -616,6 +616,47 @@ LocalPlayer.CharacterAdded:Connect(function()
         adjustLightBrightness()
     end
 end)
+local Toggle = Tab:CreateToggle({
+   Name = "fullbright",
+   CurrentValue = false,
+   Flag = "Toggle1", -- Identifier unik
+   Callback = function(Value)
+       local lighting = game:GetService("Lighting")
+       -- Variable untuk menyimpan koneksi event
+       local fullBrightConnection
+
+       if Value then
+           -- Aktifkan full bright
+           fullBrightConnection = lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+               -- Pastikan ClockTime tetap pada nilai terang
+               lighting.Brightness = 3
+               lighting.ClockTime = 14
+               lighting.FogEnd = 1e10
+               lighting.GlobalShadows = false
+           end)
+
+           -- Atur awal properti full bright
+           lighting.Brightness = 2
+           lighting.ClockTime = 14
+           lighting.FogEnd = 1e10
+           lighting.GlobalShadows = false
+
+           -- Simpan koneksi agar bisa di-*disconnect* nanti
+           Toggle.fullBrightConnection = fullBrightConnection
+       else
+           -- Matikan full bright dan reset properti ke nilai default
+           if Toggle.fullBrightConnection then
+               Toggle.fullBrightConnection:Disconnect()
+               Toggle.fullBrightConnection = nil
+           end
+
+           lighting.Brightness = 1
+           lighting.ClockTime = 12
+           lighting.FogEnd = 1000
+           lighting.GlobalShadows = true
+       end
+   end,
+})
 local autoSpawn = false -- Status toggle auto-spawn
 
 -- Membuat Toggle untuk Auto-Spawn
@@ -1538,5 +1579,34 @@ Tab:CreateButton({
     end,
 })
 
+local Tab = Window:CreateTab("auto Buildings", 4483362458) -- Title, Image
+local Button = Tab:CreateButton({
+    Name = "house_one",
+    Interact = 'Click',
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        local backpack = player:FindFirstChild("Backpack")
+        local tool = player.Character and player.Character:FindFirstChildOfClass("Tool") or backpack and backpack:FindFirstChildOfClass("Tool")
+
+        if tool and tool.Name == "Hammer" then
+            warn("okk") -- Tool is Hammer
+        else
+            ArrayField:Notify({
+                Title = "Tool Check",
+                Content = "You are not using the Hammer tool!",
+                Duration = 6.5,
+                Image = 4483362458,
+                Actions = {
+                    Ignore = {
+                        Name = "Okay!",
+                        Callback = function()
+                            print("User acknowledged the notification.")
+                        end
+                    },
+                },
+            })
+        end
+    end,
+})
 
 ArrayField:LoadConfiguration() --di bagian bawah semua kode
