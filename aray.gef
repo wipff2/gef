@@ -1600,7 +1600,7 @@ local Button = Tab:CreateButton({
                     Ignore = {
                         Name = "Okay!",
                         Callback = function()
-                            print("User acknowledged the notification.")
+                            print("know")
                         end
                     },
                 },
