@@ -115,4 +115,4 @@ buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
 
 -- Bangun lantai lebih rendah
 buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
-print(done l)
+print("done")

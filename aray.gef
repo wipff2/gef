@@ -1586,21 +1586,24 @@ local Button = Tab:CreateButton({
     Callback = function()
         local player = game:GetService("Players").LocalPlayer
         local backpack = player:FindFirstChild("Backpack")
-        local tool = player.Character and player.Character:FindFirstChildOfClass("Tool") or backpack and backpack:FindFirstChildOfClass("Tool")
+        local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 
         if tool and tool.Name == "Hammer" then
-            warn("okk") -- Tool is Hammer
-        else
+            local success, errorMessage = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/auto"))()
+            end)
+
+            if not success then
             ArrayField:Notify({
-                Title = "Tool Check",
-                Content = "You are not using the Hammer tool!",
-                Duration = 6.5,
+                Title = "Get Error",
+                Content = "Did you know you need the Hammer tool for this?",
+                Duration = 8,
                 Image = 4483362458,
                 Actions = {
                     Ignore = {
                         Name = "Okay!",
                         Callback = function()
-                            print("know")
+                            print("Acknowledged tool requirement.")
                         end
                     },
                 },
@@ -1608,5 +1611,6 @@ local Button = Tab:CreateButton({
         end
     end,
 })
+
 
 ArrayField:LoadConfiguration() --di bagian bawah semua kode
