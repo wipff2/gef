@@ -1585,15 +1585,17 @@ local Button = Tab:CreateButton({
     Interact = 'Click',
     Callback = function()
         local player = game:GetService("Players").LocalPlayer
-        local backpack = player:FindFirstChild("Backpack")
         local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 
         if tool and tool.Name == "Hammer" then
-            local success, errorMessage = pcall(function()
+            local success = pcall(function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/auto"))()
             end)
 
             if not success then
+                warn("Failed to load script.")
+            end
+        else
             ArrayField:Notify({
                 Title = "Get Error",
                 Content = "Did you know you need the Hammer tool for this?",
@@ -1603,7 +1605,7 @@ local Button = Tab:CreateButton({
                     Ignore = {
                         Name = "Okay!",
                         Callback = function()
-                            print("Acknowledged tool requirement.")
+                            print("tool")
                         end
                     },
                 },
