@@ -116,3 +116,17 @@ buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
 -- Bangun lantai lebih rendah
 buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
 print("done")
+ArrayField:Notify({
+    Title = "Auto build done",
+    Content = "Unequip Hammer",
+    Duration = 6.5,
+    Image = 4483362458,
+    Actions = { -- Notification Buttons
+       Ignore = {
+          Name = "Okay!",
+          Callback = function()
+          print("Okay!")
+       end
+    },
+  },
+ })
