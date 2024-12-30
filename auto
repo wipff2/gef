@@ -1,3 +1,4 @@
+local ArrayField = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/ArrayField/main/Source.lua'))()
 local heightIncrement = 0.5 -- Increment ketinggian per iterasi
 local wallHeight = 10 -- Tinggi tembok (relatif terhadap pemain)
 local character = game.Players.LocalPlayer.Character
