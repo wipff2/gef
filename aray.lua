@@ -106,11 +106,29 @@ local function dropHeldItem()
     -- Memanggil event DropItem
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
     if dropItemEvent then
+        wait(0.3)
         dropItemEvent:FireServer(heldTool)
     end
 end
 local Section = Tab:CreateSection("tools",true)
 -- Membuat tombol untuk setiap item
+local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
+
+-- Membuat slider untuk mengatur jarak pengecualian
+local Slider = Tab:CreateSlider({
+    Name = "Exclude Distance",
+    Range = {0, 20}, -- Rentang slider (0-20 stud)
+    Increment = 1, -- Nilai kenaikan setiap geser
+    Suffix = " Studs",
+    CurrentValue = excludeDistance, -- Nilai awal
+    Flag = "ExcludeDistanceSlider",
+    Callback = function(Value)
+        excludeDistance = Value
+        print("Exclude Distance set to:", excludeDistance)
+    end,
+})
+
+-- Membuat tombol untuk setiap item dengan pengecualian jarak
 for _, item in ipairs(items) do
     Tab:CreateButton({
         Name = item .. " Teleport",
@@ -143,12 +161,19 @@ for _, item in ipairs(items) do
                 warn(item .. " not found.")
                 return
             end
+
+            -- Mengukur jarak antara karakter dan item
+            local distance = (humanoidRootPart.Position - toolPart.Position).Magnitude
+            if distance <= excludeDistance then
+                return
+            end
             
             -- Teleportasi ke MeshPart
             humanoidRootPart.CFrame = toolPart.CFrame
-            print("Teleport")
+            print("Teleport to", item)
+            
             -- Tunggu 0.2 detik agar karakter sampai ke MeshPart
-            task.wait(0.2)
+            task.wait(0.4)
 
             -- Memicu ProximityPrompt jika ada
             local proximityPrompt = toolPart:FindFirstChildOfClass("ProximityPrompt")
