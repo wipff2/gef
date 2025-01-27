@@ -61,9 +61,12 @@ local items = {"Bat", "Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money"
 -- Variabel untuk menyimpan posisi awal, rotasi awal, dan status ProximityPrompt
 local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
 local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
-local originalPosition = nil -- Posisi awal pemain
-local originalRotation = nil -- Rotasi awal pemain
+local autoDropHeldItem = false -- Status toggle untuk auto-drop item yang dipegang
+local originalPosition = nil -- Posisi awal pemain (CFrame)
 local defaultRotation = nil -- Rotasi default karakter
+local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
+local previewBeams = {} -- Tabel untuk menyimpan beam visualisasi
+local isPreviewActive = false -- Status apakah preview aktif
 
 -- Membuat Toggle untuk kembali ke posisi awal
 Tab:CreateToggle({
@@ -84,7 +87,6 @@ Tab:CreateToggle({
         autoTriggerPrompt = Value
     end,
 })
-local autoDropHeldItem = false
 
 -- Membuat Toggle untuk auto-drop item yang dipegang
 Tab:CreateToggle({
@@ -104,7 +106,7 @@ local function dropHeldItem()
     -- Cek tool di tangan pemain
     local heldTool = character:FindFirstChildOfClass("Tool")
     if not heldTool then
-        print("No found.")
+        print("No tool found.")
         return
     end
 
@@ -117,37 +119,12 @@ local function dropHeldItem()
         dropItemEvent:FireServer(heldTool)
         print("Dropped:", heldTool.Name)
     else
-        warn("Drop.")
+        warn("DropItem event not found.")
     end
 end
 
--- Seksi untuk tools
-local Section = Tab:CreateSection("tools", true)
-local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
-local originalExcludePosition = nil -- Posisi awal excludeDistance sebelum teleportasi
-local previewBeams = {} -- Tabel untuk menyimpan beam visualisasi
-local isPreviewActive = false -- Status apakah preview aktif
-
-local RunService = game:GetService("RunService")
-
-local Toggle = Tab:CreateToggle({
-    Name = "Toggle Preview Distance",
-    CurrentValue = false,
-    Flag = "TogglePreviewDistance",
-    Callback = function(Value)
-        -- Aktifkan atau nonaktifkan preview
-        isPreviewActive = Value
-        if Value then
-            createPreviewCircle()
-            startUpdatingBeams()
-        else
-            destroyPreviewCircle()
-        end
-    end,
-})
-
 -- Fungsi untuk membuat preview lingkaran beam
-function createPreviewCircle()
+local function createPreviewCircle()
     if #previewBeams > 0 then return end -- Jika sudah ada, jangan buat lagi
 
     -- Jumlah beam untuk membuat lingkaran (semakin banyak, semakin halus)
@@ -170,7 +147,7 @@ function createPreviewCircle()
 end
 
 -- Fungsi untuk menghapus preview lingkaran beam
-function destroyPreviewCircle()
+local function destroyPreviewCircle()
     for _, beam in ipairs(previewBeams) do
         beam:Destroy()
     end
@@ -178,7 +155,7 @@ function destroyPreviewCircle()
 end
 
 -- Fungsi untuk memperbarui posisi beam setiap saat
-function updateBeams()
+local function updateBeams()
     local player = game.Players.LocalPlayer
     local character = player.Character
     if not character then return end
@@ -202,16 +179,32 @@ function updateBeams()
 end
 
 -- Fungsi untuk memulai pembaruan beam secara real-time
-function startUpdatingBeams()
-    RunService.Heartbeat:Connect(function()
+local function startUpdatingBeams()
+    game:GetService("RunService").Heartbeat:Connect(function()
         if isPreviewActive then
             updateBeams() -- Perbarui posisi beam setiap frame
         end
     end)
 end
 
--- Update preview lingkaran saat slider berubah
-local Slider = Tab:CreateSlider({
+-- Toggle untuk mengaktifkan/menonaktifkan preview jarak
+Tab:CreateToggle({
+    Name = "Toggle Preview Distance",
+    CurrentValue = false,
+    Flag = "TogglePreviewDistance",
+    Callback = function(Value)
+        isPreviewActive = Value
+        if Value then
+            createPreviewCircle()
+            startUpdatingBeams()
+        else
+            destroyPreviewCircle()
+        end
+    end,
+})
+
+-- Slider untuk mengatur jarak excludeDistance
+Tab:CreateSlider({
     Name = "Exclude Distance",
     Range = {0, 20},
     Increment = 1,
@@ -227,7 +220,7 @@ local Slider = Tab:CreateSlider({
 })
 
 -- Fungsi untuk mencari item terdekat di luar excludeDistance
-function findNearestItemOutsideExcludeDistance(itemName)
+local function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
@@ -261,87 +254,85 @@ function findNearestItemOutsideExcludeDistance(itemName)
     return nearestItem
 end
 
--- Fungsi untuk kembali ke posisi dan rotasi awal
-local function returnToOriginalPosition()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+-- Membuat tombol untuk setiap item
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = item .. " Teleport",
+        Callback = function()
+            -- Cari item terdekat di luar excludeDistance
+            local nearestItem = findNearestItemOutsideExcludeDistance(item)
 
-    -- Validasi HumanoidRootPart dan posisi awal
-    if humanoidRootPart and originalPosition then
-        -- Kembalikan posisi dan rotasi awal
-        humanoidRootPart.CFrame = originalPosition
-        print("Returned to original position and rotation.")
-    else
-        warn("Original position or HumanoidRootPart not found.")
-    end
-end
+            if not nearestItem then
+                warn("No " .. item .. " found outside exclude distance.")
+                return
+            end
 
--- Memperbaiki logika toggle dan teleportasi
-Tab:CreateButton({
-    Name = item .. " Teleport",
-    Callback = function()
-        -- Cari item terdekat di luar excludeDistance
-        local nearestItem = findNearestItemOutsideExcludeDistance(item)
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-        if not nearestItem then
-            warn("No " .. item .. " found outside exclude distance.")
-            return
-        end
+            -- Validasi keberadaan HumanoidRootPart
+            if not humanoidRootPart then
+                warn("HumanoidRootPart not found.")
+                return
+            end
 
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            -- Simpan rotasi default jika belum disimpan
+            if not defaultRotation then
+                defaultRotation = humanoidRootPart.CFrame - humanoidRootPart.Position
+            end
 
-        -- Validasi keberadaan HumanoidRootPart
-        if not humanoidRootPart then
-            warn("HumanoidRootPart not found.")
-            return
-        end
+            -- Menyimpan posisi dan rotasi awal jika toggle aktif
+            if returnToOriginal then
+                originalPosition = humanoidRootPart.CFrame
+                print("Original position and rotation saved.")
+            end
 
-        -- Menyimpan posisi dan rotasi awal jika toggle aktif
-        if returnToOriginal then
-            originalPosition = humanoidRootPart.CFrame
-        end
+            -- Teleportasi ke item terdekat
+            humanoidRootPart.CFrame = nearestItem.CFrame
+            print("Teleported to " .. nearestItem.Name)
 
-        -- Teleportasi ke item terdekat
-        humanoidRootPart.CFrame = nearestItem.CFrame
-        print("Teleported to " .. nearestItem.Name)
+            -- Tunggu 0.2 detik agar karakter sampai ke item
+            task.wait(0.2)
 
-        -- Tunggu 0.2 detik agar karakter sampai ke item
-        task.wait(0.2)
-
-        -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
-        local promptsTriggered = 0
-        for _, descendant in ipairs(workspace:GetDescendants()) do
-            if descendant:IsA("ProximityPrompt") then
-                local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                if promptDistance <= descendant.MaxActivationDistance then
-                    fireproximityprompt(descendant, 0)
-                    task.wait(0.1)
-                    fireproximityprompt(descendant, 1)
-                    promptsTriggered = promptsTriggered + 1
-                    print("Triggered proximity prompt.")
+            -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
+            local promptsTriggered = 0
+            for _, descendant in ipairs(workspace:GetDescendants()) do
+                if descendant:IsA("ProximityPrompt") then
+                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                    if promptDistance <= descendant.MaxActivationDistance then
+                        fireproximityprompt(descendant, 0)
+                        task.wait(0.1)
+                        fireproximityprompt(descendant, 1)
+                        promptsTriggered = promptsTriggered + 1
+                        print("Triggered ProximityPrompt")
+                    end
                 end
             end
-        end
 
-        if promptsTriggered == 0 then
-            warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
-        end
+            if promptsTriggered == 0 then
+                warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
+            end
 
-        -- Kembalikan karakter jika toggle aktif
-        if returnToOriginal then
-            task.wait(1)
-            returnToOriginalPosition()
-        end
+            -- Kembalikan karakter ke posisi awal jika toggle aktif
+            if returnToOriginal and originalPosition then
+                task.wait(1) -- Tunggu 1 detik sebelum kembali
+                humanoidRootPart.CFrame = originalPosition -- Kembalikan ke posisi awal
+                print("Returned to original position.")
 
-        -- Drop item yang dipegang jika auto-drop aktif
-        if autoDropHeldItem then
-            dropHeldItem()
-        end
-    end,
-})
+                -- Atur rotasi ke default (primary)
+                task.wait(0.5) -- Tunggu 0.5 detik sebelum mengatur rotasi
+                humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
+                print("Rotation set to default.")
+            end
+
+            -- Drop item yang dipegang jika auto-drop aktif
+            if autoDropHeldItem then
+                dropHeldItem()
+            end
+        end,
+    })
+end
 
 local autoTeleportToMoney = false
 local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
