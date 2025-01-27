@@ -63,6 +63,7 @@ local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
 local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
 local originalPosition = nil -- Posisi awal pemain
 local originalRotation = nil -- Rotasi awal pemain
+local defaultRotation = nil -- Rotasi default karakter
 
 -- Membuat Toggle untuk kembali ke posisi awal
 Tab:CreateToggle({
@@ -283,6 +284,11 @@ for _, item in ipairs(items) do
                 return
             end
 
+            -- Simpan rotasi default jika belum disimpan
+            if not defaultRotation then
+                defaultRotation = humanoidRootPart.CFrame - humanoidRootPart.Position
+            end
+
             -- Menyimpan posisi dan rotasi awal jika toggle aktif
             if returnToOriginal then
                 originalPosition = humanoidRootPart.CFrame
@@ -315,16 +321,22 @@ for _, item in ipairs(items) do
                 warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
             end
 
-            -- Kembali ke posisi awal dan rotasi default jika toggle aktif
+            -- Kembalikan karakter berdasarkan toggle
             if returnToOriginal and originalPosition then
+                -- Jika toggle aktif, kembalikan ke posisi dan rotasi default
                 wait(0.5)
-                humanoidRootPart.CFrame = originalPosition + originalRotation -- Kembalikan posisi dan rotasi
+                humanoidRootPart.CFrame = originalPosition + originalRotation
                 print("Returned to original position and rotation.")
+            else
+                -- Jika toggle tidak aktif, kembalikan ke rotasi default tanpa mengubah posisi
+                wait(0.5)
+                humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
+                print("Returned to default rotation.")
+            end
 
-                -- Drop item yang dipegang jika auto-drop aktif
-                if autoDropHeldItem then
-                    dropHeldItem()
-                end
+            -- Drop item yang dipegang jika auto-drop aktif
+            if autoDropHeldItem then
+                dropHeldItem()
             end
         end,
     })
