@@ -203,7 +203,7 @@ end
 function startUpdatingBeams()
     RunService.Heartbeat:Connect(function()
         if isPreviewActive then
-            updateBeams()
+            updateBeams() -- Perbarui posisi beam setiap frame
         end
     end)
 end
@@ -219,21 +219,57 @@ local Slider = Tab:CreateSlider({
     Callback = function(Value)
         excludeDistance = Value
         if isPreviewActive then
-            updateBeams()
+            updateBeams() -- Perbarui visualisasi beam
         end
     end,
 })
 
--- Membuat tombol untuk setiap item
-for _, item in ipairs(items) do
-    Tab:CreateButton({
-        Name = item .. " Teleport",
-        Callback = function()
+-- Fungsi untuk mencari item terdekat di luar excludeDistance
+function findNearestItemOutsideExcludeDistance()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+    if not humanoidRootPart then
+        warn("HumanoidRootPart not found.")
+        return nil
+    end
+
+    -- Validasi folder Pickups
+    local pickupsFolder = workspace:FindFirstChild("Pickups")
+    if not pickupsFolder then
+        warn("Pickups folder not found.")
+        return nil
+    end
+
+    -- Cari item terdekat di luar excludeDistance
+    local nearestItem = nil
+    local nearestDistance = math.huge
+
+    for _, item in ipairs(pickupsFolder:GetChildren()) do
+        if item:IsA("MeshPart") then
+            local distance = (humanoidRootPart.Position - item.Position).Magnitude
+            if distance > excludeDistance and distance < nearestDistance then
+                nearestItem = item
+                nearestDistance = distance
+            end
+        end
+    end
+
+    return nearestItem
+end
+
+-- Membuat tombol untuk teleport ke item terdekat di luar excludeDistance
+Tab:CreateButton({
+    Name = "Teleport to Nearest Item Outside Exclude Distance",
+    Callback = function()
+        local nearestItem = findNearestItemOutsideExcludeDistance()
+
+        if nearestItem then
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
             local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-            -- Validasi keberadaan HumanoidRootPart
             if not humanoidRootPart then
                 warn("HumanoidRootPart not found.")
                 return
@@ -244,32 +280,11 @@ for _, item in ipairs(items) do
                 originalPosition = humanoidRootPart.CFrame
             end
 
-            -- Simpan posisi awal excludeDistance sebelum teleportasi
-            originalExcludePosition = humanoidRootPart.CFrame
+            -- Teleportasi ke item terdekat
+            humanoidRootPart.CFrame = nearestItem.CFrame
+            print("Teleported to " .. nearestItem.Name)
 
-            -- Validasi folder Pickups
-            local pickupsFolder = workspace:FindFirstChild("Pickups")
-            if not pickupsFolder then
-                return
-            end
-
-            -- Validasi keberadaan item di folder Pickups
-            local toolPart = pickupsFolder:FindFirstChild(item)
-            if not toolPart or not toolPart:IsA("MeshPart") then
-                warn(item .. " not found.")
-                return
-            end
-
-            local distance = (humanoidRootPart.Position - toolPart.Position).Magnitude
-            if distance <= excludeDistance then
-                return
-            end
-
-            -- Teleportasi ke MeshPart
-            humanoidRootPart.CFrame = toolPart.CFrame
-            print("Teleported to " .. item)
-
-            -- Tunggu 0.2 detik agar karakter sampai ke MeshPart
+            -- Tunggu 0.2 detik agar karakter sampai ke item
             task.wait(0.2)
 
             -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
@@ -288,7 +303,7 @@ for _, item in ipairs(items) do
             end
 
             if promptsTriggered == 0 then
-                warn("No ProximityPrompts found or triggered around " .. item)
+                warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
             end
 
             -- Kembali ke posisi awal jika toggle aktif
@@ -301,14 +316,11 @@ for _, item in ipairs(items) do
                     dropHeldItem()
                 end
             end
-
-            -- Kembalikan excludeDistance ke posisi awal setelah teleportasi selesai
-            if originalExcludePosition and isPreviewActive then
-                updateBeams()
-            end
-        end,
-    })
-end
+        else
+            warn("No item found outside exclude distance.")
+        end
+    end,
+})
 
 local autoTeleportToMoney = false
 local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
