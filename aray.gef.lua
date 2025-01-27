@@ -1721,55 +1721,6 @@ Tab:CreateButton({
 })
 
 local Tab = Window:CreateTab("auto Buildings", 4483362458) -- Title, Image
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-
-local monitoring = false
-local connection
-
--- Fungsi untuk memulai monitoring
-local function StartMonitoring()
-    if monitoring then return end
-    monitoring = true
-
-    connection = RunService.Heartbeat:Connect(function()
-        for _, gef in pairs(workspace.GEFs:GetChildren()) do
-            if gef:IsA("Folder") and gef.Name == "Mini GEF" then
-                local target = gef:FindFirstChild("Target")
-                if target and target.Value == LocalPlayer.Name then
-                    target.Value = "" -- Kosongkan hanya jika nilainya adalah nama pemain lokal
-                end
-            end
-        end
-    end)
-end
-
--- Fungsi untuk menghentikan monitoring
-local function StopMonitoring()
-    if not monitoring then return end
-    monitoring = false
-
-    if connection then
-        connection:Disconnect()
-        connection = nil
-    end
-end
-
--- Toggle untuk mengaktifkan atau menonaktifkan fungsi monitoring
-local Toggle = Tab:CreateToggle({
-    Name = "Ghost",
-    CurrentValue = false,
-    Flag = "Abcd",
-    Callback = function(Value)
-        if Value then
-            StartMonitoring()
-        else
-            StopMonitoring()
-        end
-    end,
-})
-
 local Button = Tab:CreateButton({
     Name = "house_one",
     Interact = 'Click',
@@ -1788,8 +1739,8 @@ local Button = Tab:CreateButton({
         else
             ArrayField:Notify({
                 Title = "Get Error",
-                Content = "Did you know you need the Hammer tool for this?",
-                Duration = 8,
+                Content = "Did you know you need to use the Hammer tool for this?",
+                Duration = 10,
                 Image = 4483362458,
                 Actions = {
                     Ignore = {
