@@ -335,7 +335,8 @@ for _, item in ipairs(items) do
 end
 
 local autoTeleportToMoney = false
-local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
+local autoReturn = false -- Status toggle untuk auto return ke posisi sebelum teleport
+local autoReturnSavePos = false -- Status toggle untuk auto return ke posisi yang disimpan
 local savedPosition = nil -- Posisi yang disimpan
 local Label = Tab:CreateLabel("Saved Position: None") -- Label untuk menampilkan posisi
 
@@ -369,7 +370,17 @@ Tab:CreateToggle({
     end,
 })
 
--- Membuat Toggle untuk Auto Return Save Position
+-- Membuat Toggle untuk Auto Return (kembali ke posisi sebelum teleport)
+Tab:CreateToggle({
+    Name = "Auto Return",
+    CurrentValue = false,
+    Flag = "AutoReturn",
+    Callback = function(Value)
+        autoReturn = Value
+    end,
+})
+
+-- Membuat Toggle untuk Auto Return to Saved Position
 Tab:CreateToggle({
     Name = "Auto Return to Saved Position",
     CurrentValue = false,
@@ -424,10 +435,12 @@ function teleportAndTriggerMoney()
     end
 
     -- Kembali ke posisi sesuai toggle
-    if autoReturnSavePos and savedPosition then
-        humanoidRootPart.CFrame = savedPosition
-    else
+    if autoReturn then
+        -- Kembali ke posisi sebelum teleport
         humanoidRootPart.CFrame = originalPosition
+    elseif autoReturnSavePos and savedPosition then
+        -- Kembali ke posisi yang disimpan
+        humanoidRootPart.CFrame = savedPosition
     end
 end
 
