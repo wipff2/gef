@@ -225,7 +225,7 @@ local Slider = Tab:CreateSlider({
 })
 
 -- Fungsi untuk mencari item terdekat di luar excludeDistance
-function findNearestItemOutsideExcludeDistance()
+function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
@@ -247,7 +247,7 @@ function findNearestItemOutsideExcludeDistance()
     local nearestDistance = math.huge
 
     for _, item in ipairs(pickupsFolder:GetChildren()) do
-        if item:IsA("MeshPart") then
+        if item:IsA("MeshPart") and item.Name == itemName then
             local distance = (humanoidRootPart.Position - item.Position).Magnitude
             if distance > excludeDistance and distance < nearestDistance then
                 nearestItem = item
@@ -259,17 +259,24 @@ function findNearestItemOutsideExcludeDistance()
     return nearestItem
 end
 
--- Membuat tombol untuk teleport ke item terdekat di luar excludeDistance
-Tab:CreateButton({
-    Name = "Teleport to Nearest Item Outside Exclude Distance",
-    Callback = function()
-        local nearestItem = findNearestItemOutsideExcludeDistance()
+-- Membuat tombol untuk setiap item
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = item .. " Teleport",
+        Callback = function()
+            -- Cari item terdekat di luar excludeDistance
+            local nearestItem = findNearestItemOutsideExcludeDistance(item)
 
-        if nearestItem then
+            if not nearestItem then
+                warn("No " .. item .. " found outside exclude distance.")
+                return
+            end
+
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
             local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
+            -- Validasi keberadaan HumanoidRootPart
             if not humanoidRootPart then
                 warn("HumanoidRootPart not found.")
                 return
@@ -316,11 +323,9 @@ Tab:CreateButton({
                     dropHeldItem()
                 end
             end
-        else
-            warn("No item found outside exclude distance.")
-        end
-    end,
-})
+        end,
+    })
+end
 
 local autoTeleportToMoney = false
 local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
