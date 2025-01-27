@@ -322,17 +322,17 @@ for _, item in ipairs(items) do
             end
 
             -- Kembalikan karakter berdasarkan toggle
-            if returnToOriginal and originalPosition then
-                -- Jika toggle aktif, kembalikan ke posisi dan rotasi default
-                wait(0.5)
-                humanoidRootPart.CFrame = originalPosition + originalRotation
-                print("Returned to original position and rotation.")
-            else
-                -- Jika toggle tidak aktif, kembalikan ke rotasi default tanpa mengubah posisi
-                wait(0.5)
-                humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-                print("Returned to default rotation.")
-            end
+if returnToOriginal and originalPosition then
+    -- Jika toggle aktif, kembalikan ke posisi dan rotasi default
+    wait(1)
+    humanoidRootPart.CFrame = originalPosition + originalRotation
+    print("Returned to original position and rotation.")
+else
+    -- Jika toggle tidak aktif, kembalikan ke rotasi default tanpa mengubah posisi
+    wait(0.5)
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
+    print("Returned to default rotation.")
+end
 
             -- Drop item yang dipegang jika auto-drop aktif
             if autoDropHeldItem then
