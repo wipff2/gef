@@ -97,7 +97,7 @@ Tab:CreateToggle({
         autoDropHeldItem = Value
     end,
 })
-
+local Section = Tab:CreateSection("Teleport",true)
 -- Fungsi untuk drop item yang sedang dipegang dengan delay
 local function dropHeldItem()
     local player = game.Players.LocalPlayer
@@ -189,7 +189,7 @@ end
 
 -- Toggle untuk mengaktifkan/menonaktifkan preview jarak
 Tab:CreateToggle({
-    Name = "Toggle Preview Distance",
+    Name = "Preview Distance",
     CurrentValue = false,
     Flag = "TogglePreviewDistance",
     Callback = function(Value)
