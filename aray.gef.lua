@@ -58,10 +58,11 @@ local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode tel
 -- Daftar nama tools
 local items = {"Bat", "Crowbar", "Food", "Hammer", "Handgun", "Lantern", "Money", "Soda", "Shotgun", "Shells", "Bullets", "Medkit", "GPS"}
 
--- Variabel untuk menyimpan posisi awal dan status ProximityPrompt
+-- Variabel untuk menyimpan posisi awal, rotasi awal, dan status ProximityPrompt
 local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
 local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
 local originalPosition = nil -- Posisi awal pemain
+local originalRotation = nil -- Rotasi awal pemain
 
 -- Membuat Toggle untuk kembali ke posisi awal
 Tab:CreateToggle({
@@ -282,9 +283,10 @@ for _, item in ipairs(items) do
                 return
             end
 
-            -- Menyimpan posisi awal jika toggle aktif
+            -- Menyimpan posisi dan rotasi awal jika toggle aktif
             if returnToOriginal then
                 originalPosition = humanoidRootPart.CFrame
+                originalRotation = humanoidRootPart.CFrame - humanoidRootPart.Position -- Simpan rotasi saja
             end
 
             -- Teleportasi ke item terdekat
@@ -313,10 +315,11 @@ for _, item in ipairs(items) do
                 warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
             end
 
-            -- Kembali ke posisi awal jika toggle aktif
+            -- Kembali ke posisi awal dan rotasi default jika toggle aktif
             if returnToOriginal and originalPosition then
                 wait(0.5)
-                humanoidRootPart.CFrame = originalPosition
+                humanoidRootPart.CFrame = originalPosition + originalRotation -- Kembalikan posisi dan rotasi
+                print("Returned to original position and rotation.")
 
                 -- Drop item yang dipegang jika auto-drop aktif
                 if autoDropHeldItem then
