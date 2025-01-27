@@ -122,6 +122,7 @@ end
 -- Seksi untuk tools
 local Section = Tab:CreateSection("tools", true)
 local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
+local originalExcludePosition = nil -- Posisi awal excludeDistance sebelum teleportasi
 
 local Toggle = Tab:CreateToggle({
     Name = "Toggle Preview Distance",
@@ -187,6 +188,7 @@ local Slider = Tab:CreateSlider({
         end
     end,
 })
+
 -- Membuat tombol untuk setiap item
 for _, item in ipairs(items) do
     Tab:CreateButton({
@@ -206,6 +208,9 @@ for _, item in ipairs(items) do
             if returnToOriginal then
                 originalPosition = humanoidRootPart.CFrame
             end
+
+            -- Simpan posisi awal excludeDistance sebelum teleportasi
+            originalExcludePosition = humanoidRootPart.CFrame
 
             -- Validasi folder Pickups
             local pickupsFolder = workspace:FindFirstChild("Pickups")
@@ -260,6 +265,11 @@ for _, item in ipairs(items) do
                 if autoDropHeldItem then
                     dropHeldItem()
                 end
+            end
+
+            -- Kembalikan excludeDistance ke posisi awal setelah teleportasi selesai
+            if originalExcludePosition then
+                previewCircle.CFrame = originalExcludePosition * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(90))
             end
         end,
     })
