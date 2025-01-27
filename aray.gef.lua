@@ -123,16 +123,68 @@ end
 local Section = Tab:CreateSection("tools", true)
 local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
 
--- Membuat slider untuk mengatur jarak pengecualian
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle Preview Distance",
+    CurrentValue = false,
+    Flag = "TogglePreviewDistance",
+    Callback = function(Value)
+        -- Aktifkan atau nonaktifkan preview
+        if Value then
+            createPreviewCircle()
+        else
+            destroyPreviewCircle()
+        end
+    end,
+})
+
+local previewCircle = nil
+
+-- Fungsi untuk membuat preview lingkaran
+function createPreviewCircle()
+    if previewCircle then return end
+
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+    if not humanoidRootPart then return end
+
+    -- Buat part untuk lingkaran
+    previewCircle = Instance.new("Part")
+    previewCircle.Shape = Enum.PartType.Cylinder
+    previewCircle.Size = Vector3.new(0.2, excludeDistance * 2, excludeDistance * 2)
+    previewCircle.Transparency = 0.7
+    previewCircle.Color = Color3.new(1, 0, 0)
+    previewCircle.Anchored = true
+    previewCircle.CanCollide = false
+    previewCircle.Parent = workspace
+
+    -- Posisikan lingkaran di sekitar pemain
+    previewCircle.CFrame = humanoidRootPart.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(90))
+end
+
+-- Fungsi untuk menghapus preview lingkaran
+function destroyPreviewCircle()
+    if previewCircle then
+        previewCircle:Destroy()
+        previewCircle = nil
+    end
+end
+
+-- Update preview lingkaran saat slider berubah
 local Slider = Tab:CreateSlider({
     Name = "Exclude Distance",
-    Range = {0, 20}, -- Rentang slider (0-20 stud)
-    Increment = 1, -- Nilai kenaikan setiap geser
+    Range = {0, 20},
+    Increment = 1,
     Suffix = " Studs",
-    CurrentValue = excludeDistance, -- Nilai awal
+    CurrentValue = excludeDistance,
     Flag = "ExcludeDistanceSlider",
     Callback = function(Value)
         excludeDistance = Value
+        if Toggle.CurrentValue then
+            destroyPreviewCircle()
+            createPreviewCircle()
+        end
     end,
 })
 -- Membuat tombol untuk setiap item
