@@ -1286,7 +1286,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- Variabel untuk menyimpan status ESP dan koneksi
 local ESPEnabled = {
-    Big = false
+    GEF = false
 }
 local ESPConnections = {}
 
@@ -1339,39 +1339,39 @@ local function updateESP(object, title, health, distance)
     end
 end
 
--- Fungsi untuk menangani ESP Big GEF
-local function updateBigGEFESP()
-    local bigGEF = workspace:FindFirstChild("GEF")
-    if bigGEF and bigGEF:FindFirstChild("Head") and bigGEF:FindFirstChild("Health") then
-        local head = bigGEF.Head
-        local health = bigGEF.Health.Value
+-- Fungsi untuk menangani ESP GEF
+local function updateGEFESP()
+    local gef = workspace:FindFirstChild("GEF")
+    if gef and gef:FindFirstChild("Head") and gef:FindFirstChild("Health") then
+        local head = gef.Head
+        local health = gef.Health.Value
         local distance = getDistance(head.Position)
-        updateESP(head, "Big GEF", health, distance)
+        updateESP(head, "GEF", health, distance)
     else
-        warn("Big GEF not found or missing components")
+        warn("GEF not found or missing components")
     end
 end
 
--- Membuat Toggle untuk Big GEF ESP
+-- Membuat Toggle untuk GEF ESP
 Tab:CreateToggle({
-    Name = "ESP Big GEF",
+    Name = "ESP GEF",
     CurrentValue = false,
-    Flag = "ESP_Big_GEF",
+    Flag = "ESP_GEF",
     Callback = function(value)
-        ESPEnabled.Big = value
+        ESPEnabled.GEF = value
         if value then
             -- Sambungkan ke Heartbeat untuk memperbarui ESP
-            ESPConnections.Big = RunService.Heartbeat:Connect(updateBigGEFESP)
+            ESPConnections.GEF = RunService.Heartbeat:Connect(updateGEFESP)
         else
             -- Hapus koneksi jika toggle dimatikan
-            if ESPConnections.Big then
-                ESPConnections.Big:Disconnect()
-                ESPConnections.Big = nil
+            if ESPConnections.GEF then
+                ESPConnections.GEF:Disconnect()
+                ESPConnections.GEF = nil
             end
-            -- Hapus ESP dari Big GEF jika ada
-            local bigGEF = workspace:FindFirstChild("GEF")
-            if bigGEF and bigGEF:FindFirstChild("Head") then
-                local esp = bigGEF.Head:FindFirstChild("ESP_Billboard")
+            -- Hapus ESP dari GEF jika ada
+            local gef = workspace:FindFirstChild("GEF")
+            if gef and gef:FindFirstChild("Head") then
+                local esp = gef.Head:FindFirstChild("ESP_Billboard")
                 if esp then esp:Destroy() end
             end
         end
