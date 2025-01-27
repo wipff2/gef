@@ -123,6 +123,10 @@ end
 local Section = Tab:CreateSection("tools", true)
 local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
 local originalExcludePosition = nil -- Posisi awal excludeDistance sebelum teleportasi
+local previewBeams = {} -- Tabel untuk menyimpan beam visualisasi
+local isPreviewActive = false -- Status apakah preview aktif
+
+local RunService = game:GetService("RunService")
 
 local Toggle = Tab:CreateToggle({
     Name = "Toggle Preview Distance",
@@ -130,46 +134,78 @@ local Toggle = Tab:CreateToggle({
     Flag = "TogglePreviewDistance",
     Callback = function(Value)
         -- Aktifkan atau nonaktifkan preview
+        isPreviewActive = Value
         if Value then
             createPreviewCircle()
+            startUpdatingBeams()
         else
             destroyPreviewCircle()
         end
     end,
 })
 
-local previewCircle = nil
-
--- Fungsi untuk membuat preview lingkaran
+-- Fungsi untuk membuat preview lingkaran beam
 function createPreviewCircle()
-    if previewCircle then return end
+    if #previewBeams > 0 then return end -- Jika sudah ada, jangan buat lagi
 
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    -- Jumlah beam untuk membuat lingkaran (semakin banyak, semakin halus)
+    local numBeams = 30
+    local angleIncrement = (2 * math.pi) / numBeams
 
-    if not humanoidRootPart then return end
+    for i = 1, numBeams do
+        -- Buat part untuk beam
+        local beamPart = Instance.new("Part")
+        beamPart.Size = Vector3.new(0.2, 0.2, 0.2)
+        beamPart.Transparency = 0.5
+        beamPart.Color = Color3.new(1, 0, 0)
+        beamPart.Anchored = true
+        beamPart.CanCollide = false
+        beamPart.Parent = workspace
 
-    -- Buat part untuk lingkaran
-    previewCircle = Instance.new("Part")
-    previewCircle.Shape = Enum.PartType.Cylinder
-    previewCircle.Size = Vector3.new(0.2, excludeDistance * 2, excludeDistance * 2)
-    previewCircle.Transparency = 0.7
-    previewCircle.Color = Color3.new(1, 0, 0)
-    previewCircle.Anchored = true
-    previewCircle.CanCollide = false
-    previewCircle.Parent = workspace
-
-    -- Posisikan lingkaran di sekitar pemain
-    previewCircle.CFrame = humanoidRootPart.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(90))
+        -- Simpan beam ke tabel
+        table.insert(previewBeams, beamPart)
+    end
 end
 
--- Fungsi untuk menghapus preview lingkaran
+-- Fungsi untuk menghapus preview lingkaran beam
 function destroyPreviewCircle()
-    if previewCircle then
-        previewCircle:Destroy()
-        previewCircle = nil
+    for _, beam in ipairs(previewBeams) do
+        beam:Destroy()
     end
+    previewBeams = {} -- Kosongkan tabel
+end
+
+-- Fungsi untuk memperbarui posisi beam setiap saat
+function updateBeams()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    local numBeams = #previewBeams
+    local angleIncrement = (2 * math.pi) / numBeams
+
+    for i, beam in ipairs(previewBeams) do
+        -- Hitung posisi beam
+        local angle = i * angleIncrement
+        local x = math.cos(angle) * excludeDistance
+        local z = math.sin(angle) * excludeDistance
+        local beamPosition = humanoidRootPart.Position + Vector3.new(x, 0, z)
+
+        -- Posisikan beam
+        beam.CFrame = CFrame.new(beamPosition)
+    end
+end
+
+-- Fungsi untuk memulai pembaruan beam secara real-time
+function startUpdatingBeams()
+    RunService.Heartbeat:Connect(function()
+        if isPreviewActive then
+            updateBeams()
+        end
+    end)
 end
 
 -- Update preview lingkaran saat slider berubah
@@ -182,9 +218,8 @@ local Slider = Tab:CreateSlider({
     Flag = "ExcludeDistanceSlider",
     Callback = function(Value)
         excludeDistance = Value
-        if Toggle.CurrentValue then
-            destroyPreviewCircle()
-            createPreviewCircle()
+        if isPreviewActive then
+            updateBeams()
         end
     end,
 })
@@ -268,8 +303,8 @@ for _, item in ipairs(items) do
             end
 
             -- Kembalikan excludeDistance ke posisi awal setelah teleportasi selesai
-            if originalExcludePosition then
-                previewCircle.CFrame = originalExcludePosition * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(90))
+            if originalExcludePosition and isPreviewActive then
+                updateBeams()
             end
         end,
     })
