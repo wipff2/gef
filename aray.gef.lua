@@ -261,86 +261,87 @@ function findNearestItemOutsideExcludeDistance(itemName)
     return nearestItem
 end
 
--- Membuat tombol untuk setiap item
-for _, item in ipairs(items) do
-    Tab:CreateButton({
-        Name = item .. " Teleport",
-        Callback = function()
-            -- Cari item terdekat di luar excludeDistance
-            local nearestItem = findNearestItemOutsideExcludeDistance(item)
+-- Fungsi untuk kembali ke posisi dan rotasi awal
+local function returnToOriginalPosition()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-            if not nearestItem then
-                warn("No " .. item .. " found outside exclude distance.")
-                return
-            end
+    -- Validasi HumanoidRootPart dan posisi awal
+    if humanoidRootPart and originalPosition then
+        -- Kembalikan posisi dan rotasi awal
+        humanoidRootPart.CFrame = originalPosition
+        print("Returned to original position and rotation.")
+    else
+        warn("Original position or HumanoidRootPart not found.")
+    end
+end
 
-            local player = game.Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+-- Memperbaiki logika toggle dan teleportasi
+Tab:CreateButton({
+    Name = item .. " Teleport",
+    Callback = function()
+        -- Cari item terdekat di luar excludeDistance
+        local nearestItem = findNearestItemOutsideExcludeDistance(item)
 
-            -- Validasi keberadaan HumanoidRootPart
-            if not humanoidRootPart then
-                warn("HumanoidRootPart not found.")
-                return
-            end
+        if not nearestItem then
+            warn("No " .. item .. " found outside exclude distance.")
+            return
+        end
 
-            -- Simpan rotasi default jika belum disimpan
-            if not defaultRotation then
-                defaultRotation = humanoidRootPart.CFrame - humanoidRootPart.Position
-            end
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-            -- Menyimpan posisi dan rotasi awal jika toggle aktif
-            if returnToOriginal then
-                originalPosition = humanoidRootPart.CFrame
-                originalRotation = humanoidRootPart.CFrame - humanoidRootPart.Position -- Simpan rotasi saja
-            end
+        -- Validasi keberadaan HumanoidRootPart
+        if not humanoidRootPart then
+            warn("HumanoidRootPart not found.")
+            return
+        end
 
-            -- Teleportasi ke item terdekat
-            humanoidRootPart.CFrame = nearestItem.CFrame
-            print("Teleported to " .. nearestItem.Name)
+        -- Menyimpan posisi dan rotasi awal jika toggle aktif
+        if returnToOriginal then
+            originalPosition = humanoidRootPart.CFrame
+        end
 
-            -- Tunggu 0.2 detik agar karakter sampai ke item
-            task.wait(0.2)
+        -- Teleportasi ke item terdekat
+        humanoidRootPart.CFrame = nearestItem.CFrame
+        print("Teleported to " .. nearestItem.Name)
 
-            -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
-            local promptsTriggered = 0
-            for _, descendant in ipairs(workspace:GetDescendants()) do
-                if descendant:IsA("ProximityPrompt") then
-                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                    if promptDistance <= descendant.MaxActivationDistance then
-                        fireproximityprompt(descendant, 0)
-                        task.wait(0.1)
-                        fireproximityprompt(descendant, 1)
-                        promptsTriggered = promptsTriggered + 1
-                        print("Triger")
-                    end
+        -- Tunggu 0.2 detik agar karakter sampai ke item
+        task.wait(0.2)
+
+        -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
+        local promptsTriggered = 0
+        for _, descendant in ipairs(workspace:GetDescendants()) do
+            if descendant:IsA("ProximityPrompt") then
+                local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                if promptDistance <= descendant.MaxActivationDistance then
+                    fireproximityprompt(descendant, 0)
+                    task.wait(0.1)
+                    fireproximityprompt(descendant, 1)
+                    promptsTriggered = promptsTriggered + 1
+                    print("Triggered proximity prompt.")
                 end
             end
+        end
 
-            if promptsTriggered == 0 then
-                warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
-            end
+        if promptsTriggered == 0 then
+            warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
+        end
 
-            -- Kembalikan karakter berdasarkan toggle
-if returnToOriginal and originalPosition then
-    -- Jika toggle aktif, kembalikan ke posisi dan rotasi default
-    wait(1)
-    humanoidRootPart.CFrame = originalPosition + originalRotation
-    print("Returned to original position and rotation.")
-else
-    -- Jika toggle tidak aktif, kembalikan ke rotasi default tanpa mengubah posisi
-    wait(0.5)
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-    print("Returned to default rotation.")
-end
+        -- Kembalikan karakter jika toggle aktif
+        if returnToOriginal then
+            task.wait(1)
+            returnToOriginalPosition()
+        end
 
-            -- Drop item yang dipegang jika auto-drop aktif
-            if autoDropHeldItem then
-                dropHeldItem()
-            end
-        end,
-    })
-end
+        -- Drop item yang dipegang jika auto-drop aktif
+        if autoDropHeldItem then
+            dropHeldItem()
+        end
+    end,
+})
 
 local autoTeleportToMoney = false
 local autoReturnSavePos = false -- Status toggle untuk auto return save posisi
