@@ -1673,61 +1673,174 @@ local SliderCrowbar = Tab:CreateSlider({
        end
    end,
 })
-local Toggle = Tab:CreateToggle({
-   Name = "No damage gefs",
-   CurrentValue = false,
-   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- destroy hurtbox find loop destroy and find if value true 
-   end,
+local gefsToggle = Tab:CreateToggle({
+    Name = "No damage gefs",
+    CurrentValue = false,
+    Flag = "Toggle33",
+    Callback = function(Value)
+        if Value then
+            -- Start detecting and destroying Hurtbox for Mini GEF
+            gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
+                if child.Name == "Mini GEF" and child:FindFirstChild("Hurtbox") then
+                    child.Hurtbox:Destroy()
+                end
+            end)
+
+            -- Destroy existing Hurtbox
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Mini GEF" and gef:FindFirstChild("Hurtbox") then
+                    gef.Hurtbox:Destroy()
+                end
+            end
+        else
+            -- Stop detecting new Mini GEFs
+            if gefsConnection then
+                gefsConnection:Disconnect()
+                gefsConnection = nil
+            end
+        end
+    end,
 })
-local Toggle = Tab:CreateToggle({
-   Name = "No damage sgef",
-   CurrentValue = false,
-   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- destroy hurtbox find loop destroy and find if value true 
-   end,
+
+local sgefToggle = Tab:CreateToggle({
+    Name = "No damage sgef",
+    CurrentValue = false,
+    Flag = "Toggle34",
+    Callback = function(Value)
+        if Value then
+            -- Start detecting and destroying Hurtbox for Tiny GEF
+            sgefConnection = workspace.GEFs.ChildAdded:Connect(function(child)
+                if child.Name == "Tiny GEF" and child:FindFirstChild("Hurtbox") then
+                    child.Hurtbox:Destroy()
+                end
+            end)
+
+            -- Destroy existing Hurtbox
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Tiny GEF" and gef:FindFirstChild("Hurtbox") then
+                    gef.Hurtbox:Destroy()
+                end
+            end
+        else
+            -- Stop detecting new Tiny GEFs
+            if sgefConnection then
+                sgefConnection:Disconnect()
+                sgefConnection = nil
+            end
+        end
+    end,
 })
-local Toggle = Tab:CreateToggle({
-   Name = "Enable hitbox Gefs",
-   CurrentValue = false,
-   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- destroy hurtbox find loop destroy and find if value true 
-   end,
+local gefsHitboxToggle, sgefHitboxToggle
+local gefsHitboxSlider, sgefHitboxSlider
+
+gefsHitboxToggle = Tab:CreateToggle({
+    Name = "Enable hitbox Gefs",
+    CurrentValue = false,
+    Flag = "Toggle33",
+    Callback = function(Value)
+        if Value then
+            gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
+                if child.Name == "Mini GEF" then
+                    local hitbox = child:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(gefsHitboxSlider, gefsHitboxSlider, gefsHitboxSlider)
+                    end
+                end
+            end)
+
+            -- Set hitbox size for existing Mini GEFs
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Mini GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(gefsHitboxSlider, gefsHitboxSlider, gefsHitboxSlider)
+                    end
+                end
+            end
+        else
+            if gefsConnection then
+                gefsConnection:Disconnect()
+                gefsConnection = nil
+            end
+        end
+    end,
 })
-local Toggle = Tab:CreateToggle({
-   Name = "Enable hitbox sgef",
-   CurrentValue = false,
-   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- destroy hurtbox find loop destroy and find if value true 
-   end,
+
+sgefHitboxToggle = Tab:CreateToggle({
+    Name = "Enable hitbox sgef",
+    CurrentValue = false,
+    Flag = "Toggle34",
+    Callback = function(Value)
+        if Value then
+            sgefConnection = workspace.GEFs.ChildAdded:Connect(function(child)
+                if child.Name == "Tiny GEF" then
+                    local hitbox = child:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(sgefHitboxSlider, sgefHitboxSlider, sgefHitboxSlider)
+                    end
+                end
+            end)
+
+            -- Set hitbox size for existing Tiny GEFs
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Tiny GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(sgefHitboxSlider, sgefHitboxSlider, sgefHitboxSlider)
+                    end
+                end
+            end
+        else
+            if sgefConnection then
+                sgefConnection:Disconnect()
+                sgefConnection = nil
+            end
+        end
+    end,
 })
-local Slider = Tab:CreateSlider({
-   Name = "Hitbox for gefs",
-   Range = {3, 20},
-   Increment = 10,
-   Suffix = "Bananas",
-   CurrentValue = 4,
-   Flag = "Slider11", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- The function that takes place when the slider changes
-   -- The variable (Value) is a number which correlates to the value the slider is currently at
-   end,
+
+gefsHitboxSlider = Tab:CreateSlider({
+    Name = "Hitbox for gefs",
+    Range = {3, 20},
+    Increment = 1,
+    Suffix = "Size",
+    CurrentValue = 4,
+    Flag = "Slider11",
+    Callback = function(Value)
+        gefsHitboxSlider = Value
+        if gefsHitboxToggle then
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Mini GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(Value, Value, Value)
+                    end
+                end
+            end
+        end
+    end,
 })
-local Slider = Tab:CreateSlider({
-   Name = "Hitbox for sgef",
-   Range = {3, 20},
-   Increment = 10,
-   Suffix = "Bananas",
-   CurrentValue = 10,
-   Flag = "Slider22", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-   -- The function that takes place when the slider changes
-   -- The variable (Value) is a number which correlates to the value the slider is currently at
-   end,
+
+sgefHitboxSlider = Tab:CreateSlider({
+    Name = "Hitbox for sgef",
+    Range = {3, 20},
+    Increment = 1,
+    Suffix = "Size",
+    CurrentValue = 10,
+    Flag = "Slider22",
+    Callback = function(Value)
+        sgefHitboxSlider = Value
+        if sgefHitboxToggle then
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Tiny GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox then
+                        hitbox.Size = Vector3.new(Value, Value, Value)
+                    end
+                end
+            end
+        end
+    end,
 })
 local Tab = Window:CreateTab("msc", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("server",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
