@@ -1730,6 +1730,35 @@ local sgefToggle = Tab:CreateToggle({
         end
     end,
 })
+local StaminaRegenInput = Tab:CreateInput({
+    Name = "Set Stamina Regen",
+    PlaceholderText = "Enter Value",
+    NumbersOnly = true,
+    CharacterLimit = 15,
+    OnEnter = true,
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local Value = tonumber(Text)
+        if Value then
+            game:GetService("Players").LocalPlayer.Upgrades.StaminaRegen.Value = Value
+        end
+    end
+})
+
+local MaxStaminaInput = Tab:CreateInput({
+    Name = "Set Max Stamina",
+    PlaceholderText = "Enter Value",
+    NumbersOnly = true,
+    CharacterLimit = 15,
+    OnEnter = true,
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local Value = tonumber(Text)
+        if Value then
+            game:GetService("Players").LocalPlayer.Upgrades.MaxStamina.Value = Value
+        end
+    end
+})
 local gefsHitboxToggle, sgefHitboxToggle
 local gefsHitboxSlider, sgefHitboxSlider
 
