@@ -36,20 +36,6 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-Window:Prompt({
-    Title = 'Interface',
-    SubTitle = 'approve',
-    Content = 'running this script means you have agreed to the rules on my discord',
-    Actions = {
-        Accept = {
-            Name = 'Accept',
-            Callback = function()
-                print('Pressed')
-            end,
-        }
-    }
-})
-
 local Tab = Window:CreateTab("top", 4483362458) -- Title, Image
 
 -- Membuat Section untuk metode teleport
