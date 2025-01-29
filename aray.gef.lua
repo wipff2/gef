@@ -1342,11 +1342,11 @@ end
 -- Fungsi untuk menangani ESP GEF
 local function updateGEFESP()
     local gef = workspace:FindFirstChild("GEF")
-    if gef and gef:FindFirstChild("Head") and gef:FindFirstChild("Health") then
-        local head = gef.Head
-        local health = gef.Health.Value
-        local distance = getDistance(head.Position)
-        updateESP(head, "GEF", health, distance)
+    if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") and gef.RootPart:FindFirstChild("Health") then
+        local hitbox = gef.RootPart.Hitbox
+        local health = gef.RootPart.Health.Value
+        local distance = getDistance(hitbox.Position)
+        updateESP(hitbox, "GEF", health, distance)
     else
         warn("GEF not found or missing components")
     end
@@ -1370,8 +1370,8 @@ Tab:CreateToggle({
             end
             -- Hapus ESP dari GEF jika ada
             local gef = workspace:FindFirstChild("GEF")
-            if gef and gef:FindFirstChild("Head") then
-                local esp = gef.Head:FindFirstChild("ESP_Billboard")
+            if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") then
+                local esp = gef.RootPart.Hitbox:FindFirstChild("ESP_Billboard")
                 if esp then esp:Destroy() end
             end
         end
@@ -1484,7 +1484,7 @@ local Section Tab:CreateToggle({
         end
     end,
 })
-local Section = Tab:CreateSection("buy",true)
+local Section = Tab:CreateSection("shop",true)
 local Section = Tab:CreateSection("upgrade",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 -- Membuat Button untuk MaxStamina
 Tab:CreateButton({
@@ -1521,7 +1521,7 @@ Tab:CreateButton({
         print("Purchased Storage")
     end,
 })
-local Section = Tab:CreateSection("shop",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
+local Section = Tab:CreateSection("buy",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 -- Fungsi untuk mencari semua item di toko dan otomatis membelinya
 local function autoBuyItem(itemName)
     -- Mencari seluruh toko di Workspace.Buildings
