@@ -1555,20 +1555,122 @@ for _, item in ipairs(items) do
 end
 local Tab = Window:CreateTab("Players", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Tools")
-local Toggle = Tab:CreateToggle({
+local speaker = game.Players.LocalPlayer
+local currentToolSize = {}
+local currentGripPos = {}
+local toolNames = {"Bat", "Crowbar", "Crowbars"}
+local selectedSizeBat = 10 -- Default size untuk Bat
+local selectedSizeCrowbar = 10 -- Default size untuk Crowbar(s)
+
+-- Fungsi untuk mendapatkan tool yang sedang di-hold
+local function getEquippedTool()
+    if speaker.Character then
+        for _, v in pairs(speaker.Character:GetChildren()) do
+            if v:IsA("Tool") and table.find(toolNames, v.Name) then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function applyHitbox(tool, size)
+    if not tool or not tool:FindFirstChild("Handle") then return end
+
+    if not currentToolSize[tool] then
+        currentToolSize[tool] = tool.Handle.Size
+        currentGripPos[tool] = tool.GripPos
+    end
+
+    if not tool.Handle:FindFirstChild("SelectionBoxCreated") then
+        local a = Instance.new("SelectionBox")
+        a.Name = "SelectionBoxCreated"
+        a.Parent = tool.Handle
+        a.Adornee = tool.Handle
+    end
+
+    tool.Handle.Massless = true
+    tool.Handle.Size = Vector3.new(size, size, size)
+    tool.GripPos = Vector3.new(0, 0, 0)
+    speaker.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
+end
+
+local function removeHitbox(tool)
+    if not tool or not tool:FindFirstChild("Handle") then return end
+
+    if currentToolSize[tool] then
+        tool.Handle.Size = currentToolSize[tool]
+        tool.GripPos = currentGripPos[tool]
+        currentToolSize[tool] = nil
+        currentGripPos[tool] = nil
+    end
+
+    if tool.Handle:FindFirstChild("SelectionBoxCreated") then
+        tool.Handle.SelectionBoxCreated:Destroy()
+    end
+end
+
+local ToggleBat = Tab:CreateToggle({
    Name = "MoreHitbox Bat",
    CurrentValue = false,
-   Flag = "Toggle11", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "Toggle11",
    Callback = function(Value)
-   -- only find loop if value true only tool name Bat set 
+       local tool = getEquippedTool()
+       if tool and tool.Name == "Bat" then
+           if Value then
+               applyHitbox(tool, selectedSizeBat)
+           else
+               removeHitbox(tool)
+           end
+       end
    end,
 })
-local Toggle = Tab:CreateToggle({
+
+local ToggleCrowbar = Tab:CreateToggle({
    Name = "MoreHitbox Crowbar",
    CurrentValue = false,
-   Flag = "Toggle22", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "Toggle22",
    Callback = function(Value)
-   -- same feature for Crowbar to bat
+       local tool = getEquippedTool()
+       if tool and (tool.Name == "Crowbar" or tool.Name == "Crowbars") then
+           if Value then
+               applyHitbox(tool, selectedSizeCrowbar)
+           else
+               removeHitbox(tool)
+           end
+       end
+   end,
+})
+
+local SliderBat = Tab:CreateSlider({
+   Name = "Bat Size",
+   Range = {10, 100},
+   Increment = 10,
+   Suffix = "Size",
+   CurrentValue = 10,
+   Flag = "SliderBat",
+   Callback = function(Value)
+       selectedSizeBat = Value
+       local tool = getEquippedTool()
+       if tool and tool.Name == "Bat" then
+           applyHitbox(tool, selectedSizeBat)
+       end
+   end,
+})
+
+local SliderCrowbar = Tab:CreateSlider({
+   Name = "Crowbar Size",
+   Range = {10, 100},
+   Increment = 10,
+   Suffix = "Size",
+   CurrentValue = 10,
+   Flag = "SliderCrowbar",
+   Callback = function(Value)
+       selectedSizeCrowbar = Value
+       local tool = getEquippedTool()
+       if tool and (tool.Name == "Crowbar" or tool.Name == "Crowbars") then
+           applyHitbox(tool, selectedSizeCrowbar)
+       end
    end,
 })
 local Toggle = Tab:CreateToggle({
