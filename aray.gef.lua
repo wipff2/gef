@@ -1,6 +1,6 @@
 -- getgenv().SecureMode = true
 
-local ArrayField = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/ArrayField/main/Source.lua'))()
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/CustomFIeld/main/RayField.lua'))()
 
 local Window = ArrayField:CreateWindow({
    Name = "ArrayField",
