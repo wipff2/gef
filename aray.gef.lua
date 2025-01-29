@@ -1690,20 +1690,9 @@ local function AttachToolToGEFRoot(ToolName, ToggleValue)
             end
         end
 
-        -- Jika Toggle aktif dan RootPart ditemukan, pindahkan posisi Handle dan tempelkan dengan WeldConstraint
+        -- Jika Toggle aktif dan RootPart ditemukan, pindahkan posisi Handle
         if ToggleValue and RootPart then
             Handle.Position = RootPart.Position
-
-            -- Cek apakah WeldConstraint sudah ada, jika tidak buat yang baru
-            local Weld = Handle:FindFirstChildOfClass("WeldConstraint")
-            if not Weld then
-                Weld = Instance.new("WeldConstraint")
-                Weld.Parent = Handle
-            end
-
-            -- Weld Handle ke RootPart
-            Weld.Part0 = Handle
-            Weld.Part1 = RootPart
         end
     end
 end
