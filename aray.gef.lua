@@ -746,7 +746,7 @@ end)
 local Toggle = Tab:CreateToggle({
    Name = "fullbright",
    CurrentValue = false,
-   Flag = "Toggle1", -- Identifier unik
+   Flag = "Togg99", -- Identifier unik
    Callback = function(Value)
        local lighting = game:GetService("Lighting")
        -- Variable untuk menyimpan koneksi event
@@ -1451,7 +1451,7 @@ Tab:CreateDropdown({
 
 -- Toggle untuk menjual item yang dipilih di dropdown
 local Section Tab:CreateToggle({
-    Name = "Sell Specific Selected Items",
+    Name = "Sell Specific Items",
     CurrentValue = false,
     Flag = "SellSpecificSelectedToggle",
     Callback = function(value)
@@ -1672,59 +1672,6 @@ local SliderCrowbar = Tab:CreateSlider({
            applyHitbox(tool, selectedSizeCrowbar)
        end
    end,
-})
-local RunService = game:GetService("RunService")
-local Player = game:GetService("Players").LocalPlayer
-local HoldingTools = {} -- Menyimpan status apakah tool sedang dipegang
-
-local function AttachToolLoop(ToolName, ToggleValue)
-    if ToggleValue then
-        HoldingTools[ToolName] = true
-        task.spawn(function()
-            while HoldingTools[ToolName] do
-                local Tool = Player.Character and Player.Character:FindFirstChild(ToolName) or Player.Backpack:FindFirstChild(ToolName)
-                if Tool and Tool:FindFirstChild("Handle") then
-                    local Handle = Tool.Handle
-                    local RootPart = nil
-
-                    -- Cek di workspace.GEFs["Mini GEF"] atau workspace.GEFs["Tiny GEF"]
-                    if workspace:FindFirstChild("GEFs") then
-                        if workspace.GEFs:FindFirstChild("Mini GEF") and workspace.GEFs["Mini GEF"]:FindFirstChild("RootPart") then
-                            RootPart = workspace.GEFs["Mini GEF"].RootPart
-                        elseif workspace.GEFs:FindFirstChild("Tiny GEF") and workspace.GEFs["Tiny GEF"]:FindFirstChild("RootPart") then
-                            RootPart = workspace.GEFs["Tiny GEF"].RootPart
-                        end
-                    end
-
-                    -- Jika RootPart ditemukan, terus update posisi Handle
-                    if RootPart then
-                        Handle.Position = RootPart.Position
-                    end
-                end
-                task.wait() -- Hindari crash, loop tetap berjalan
-            end
-        end)
-    else
-        HoldingTools[ToolName] = false -- Matikan loop jika toggle off
-    end
-end
-
-local CrowbarToggle = Tab:CreateToggle({
-    Name = "attaxh tool Crowbar"
-    CurrentValue = false,
-    Flag = "CrowbarToggle",
-    Callback = function(Value)
-        AttachToolLoop("Crowbar", Value)
-    end,
-})
-
-local BatToggle = Tab:CreateToggle({
-    Name = "attaxh tool bat",
-    CurrentValue = false,
-    Flag = "BatToggle",
-    Callback = function(Value)
-        AttachToolLoop("Bat", Value)
-    end,
 })
 local gefsToggle = Tab:CreateToggle({
     Name = "No gef mini damage",
