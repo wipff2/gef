@@ -2,37 +2,29 @@
 
 local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/CustomFIeld/main/RayField.lua'))()
 
-local Window = ArrayField:CreateWindow({
-   Name = "ArrayField",
-   LoadingTitle = "ArrayField Interface",
-   LoadingSubtitle = "by anonimyy",
+local Window = Rayfield:CreateWindow({
+   Name = "Rayfield Example Window",
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by Annonmy",
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = getgef, -- Create a custom folder for your hub/game
-      FileName = "ArrayField"
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
    },
    Discord = {
-      Enabled = true,
-      Invite = "gg/A24f827B", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      Enabled = false,
+      Invite = "sirius", -- The Discord invite code, do not include discord.gg/
       RememberJoins = true -- Set this to false to make them join the discord every time they load it up
    },
    KeySystem = false, -- Set this to true to use our key system
    KeySettings = {
-      Title = "Untitled",
+      Title = "Sirius Hub",
       Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided",
-      FileName = "Key", -- It is recommended to use something unique as other scripts using ArrayField may overwrite your key file
-      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like ArrayField to get the key from
-      Actions = {
-            [1] = {
-                Text = 'Click here to copy the key link <--',
-                OnPress = function()
-                    print('Pressed')
-                end,
-                }
-            },
-      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+      Note = "Join the discord (discord.gg/sirius)",
+      FileName = "SiriusKey",
+      SaveKey = true,
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = "Hello"
    }
 })
 
