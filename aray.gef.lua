@@ -1673,49 +1673,61 @@ local SliderCrowbar = Tab:CreateSlider({
        end
    end,
 })
-local function AttachToolToGEFRoot(ToolName, ToggleValue)
-    local Player = game:GetService("Players").LocalPlayer
-    local Tool = Player:FindFirstChild(ToolName)
+local RunService = game:GetService("RunService")
+local Player = game:GetService("Players").LocalPlayer
+local HoldingTools = {} -- Menyimpan status apakah tool sedang dipegang
 
-    if Tool and Tool:FindFirstChild("Handle") then
-        local Handle = Tool.Handle
-        local RootPart = nil
+local function AttachToolLoop(ToolName, ToggleValue)
+    if ToggleValue then
+        HoldingTools[ToolName] = true
+        task.spawn(function()
+            while HoldingTools[ToolName] do
+                local Tool = Player.Character and Player.Character:FindFirstChild(ToolName) or Player.Backpack:FindFirstChild(ToolName)
+                if Tool and Tool:FindFirstChild("Handle") then
+                    local Handle = Tool.Handle
+                    local RootPart = nil
 
-        -- Cek di workspace.GEFs["Mini GEF"] atau workspace.GEFs["Tiny GEF"]
-        if workspace:FindFirstChild("GEFs") then
-            if workspace.GEFs:FindFirstChild("Mini GEF") and workspace.GEFs["Mini GEF"]:FindFirstChild("RootPart") then
-                RootPart = workspace.GEFs["Mini GEF"].RootPart
-            elseif workspace.GEFs:FindFirstChild("Tiny GEF") and workspace.GEFs["Tiny GEF"]:FindFirstChild("RootPart") then
-                RootPart = workspace.GEFs["Tiny GEF"].RootPart
+                    -- Cek di workspace.GEFs["Mini GEF"] atau workspace.GEFs["Tiny GEF"]
+                    if workspace:FindFirstChild("GEFs") then
+                        if workspace.GEFs:FindFirstChild("Mini GEF") and workspace.GEFs["Mini GEF"]:FindFirstChild("RootPart") then
+                            RootPart = workspace.GEFs["Mini GEF"].RootPart
+                        elseif workspace.GEFs:FindFirstChild("Tiny GEF") and workspace.GEFs["Tiny GEF"]:FindFirstChild("RootPart") then
+                            RootPart = workspace.GEFs["Tiny GEF"].RootPart
+                        end
+                    end
+
+                    -- Jika RootPart ditemukan, terus update posisi Handle
+                    if RootPart then
+                        Handle.Position = RootPart.Position
+                    end
+                end
+                task.wait() -- Hindari crash, loop tetap berjalan
             end
-        end
-
-        -- Jika Toggle aktif dan RootPart ditemukan, pindahkan posisi Handle
-        if ToggleValue and RootPart then
-            Handle.Position = RootPart.Position
-        end
+        end)
+    else
+        HoldingTools[ToolName] = false -- Matikan loop jika toggle off
     end
 end
 
 local CrowbarToggle = Tab:CreateToggle({
-    Name = "Attach Crowbar to Mini/Tiny GEF",
+    Name = "attaxh tool Crowbar"
     CurrentValue = false,
     Flag = "CrowbarToggle",
     Callback = function(Value)
-        AttachToolToGEFRoot("Crowbar", Value)
+        AttachToolLoop("Crowbar", Value)
     end,
 })
 
 local BatToggle = Tab:CreateToggle({
-    Name = "Attach Bat to Mini/Tiny GEF",
+    Name = "attaxh tool bat",
     CurrentValue = false,
     Flag = "BatToggle",
     Callback = function(Value)
-        AttachToolToGEFRoot("Bat", Value)
+        AttachToolLoop("Bat", Value)
     end,
 })
 local gefsToggle = Tab:CreateToggle({
-    Name = "No damage gefs",
+    Name = "No gef mini damage",
     CurrentValue = false,
     Flag = "Toggle33",
     Callback = function(Value)
@@ -1744,7 +1756,7 @@ local gefsToggle = Tab:CreateToggle({
 })
 
 local sgefToggle = Tab:CreateToggle({
-    Name = "No damage sgef",
+    Name = "No gef small damage",
     CurrentValue = false,
     Flag = "Toggle34",
     Callback = function(Value)
