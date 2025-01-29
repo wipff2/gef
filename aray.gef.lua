@@ -1673,6 +1673,58 @@ local SliderCrowbar = Tab:CreateSlider({
        end
    end,
 })
+local function AttachToolToGEFRoot(ToolName, ToggleValue)
+    local Player = game:GetService("Players").LocalPlayer
+    local Tool = Player:FindFirstChild(ToolName)
+
+    if Tool and Tool:FindFirstChild("Handle") then
+        local Handle = Tool.Handle
+        local RootPart = nil
+
+        -- Cek di workspace.GEFs["Mini GEF"] atau workspace.GEFs["Tiny GEF"]
+        if workspace:FindFirstChild("GEFs") then
+            if workspace.GEFs:FindFirstChild("Mini GEF") and workspace.GEFs["Mini GEF"]:FindFirstChild("RootPart") then
+                RootPart = workspace.GEFs["Mini GEF"].RootPart
+            elseif workspace.GEFs:FindFirstChild("Tiny GEF") and workspace.GEFs["Tiny GEF"]:FindFirstChild("RootPart") then
+                RootPart = workspace.GEFs["Tiny GEF"].RootPart
+            end
+        end
+
+        -- Jika Toggle aktif dan RootPart ditemukan, pindahkan posisi Handle dan tempelkan dengan WeldConstraint
+        if ToggleValue and RootPart then
+            Handle.Position = RootPart.Position
+
+            -- Cek apakah WeldConstraint sudah ada, jika tidak buat yang baru
+            local Weld = Handle:FindFirstChildOfClass("WeldConstraint")
+            if not Weld then
+                Weld = Instance.new("WeldConstraint")
+                Weld.Parent = Handle
+            end
+
+            -- Weld Handle ke RootPart
+            Weld.Part0 = Handle
+            Weld.Part1 = RootPart
+        end
+    end
+end
+
+local CrowbarToggle = Tab:CreateToggle({
+    Name = "Attach Crowbar to Mini/Tiny GEF",
+    CurrentValue = false,
+    Flag = "CrowbarToggle",
+    Callback = function(Value)
+        AttachToolToGEFRoot("Crowbar", Value)
+    end,
+})
+
+local BatToggle = Tab:CreateToggle({
+    Name = "Attach Bat to Mini/Tiny GEF",
+    CurrentValue = false,
+    Flag = "BatToggle",
+    Callback = function(Value)
+        AttachToolToGEFRoot("Bat", Value)
+    end,
+})
 local gefsToggle = Tab:CreateToggle({
     Name = "No damage gefs",
     CurrentValue = false,
