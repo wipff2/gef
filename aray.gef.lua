@@ -1363,6 +1363,7 @@ Tab:CreateToggle({
         end
     end,
 })
+local Tab = Window:CreateTab("Shop", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("sell",true)
 local autoSellAll = false -- Status toggle untuk Auto Sell All
 
@@ -1552,6 +1553,80 @@ for _, item in ipairs(items) do
         end,
     })
 end
+local Tab = Window:CreateTab("Players", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Tools")
+local Toggle = Tab:CreateToggle({
+   Name = "MoreHitbox Bat",
+   CurrentValue = false,
+   Flag = "Toggle11", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- only find loop if value true only tool name Bat set 
+   end,
+})
+local Toggle = Tab:CreateToggle({
+   Name = "MoreHitbox Crowbar",
+   CurrentValue = false,
+   Flag = "Toggle22", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- same feature for Crowbar to bat
+   end,
+})
+local Toggle = Tab:CreateToggle({
+   Name = "No damage gefs",
+   CurrentValue = false,
+   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- destroy hurtbox find loop destroy and find if value true 
+   end,
+})
+local Toggle = Tab:CreateToggle({
+   Name = "No damage sgef",
+   CurrentValue = false,
+   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- destroy hurtbox find loop destroy and find if value true 
+   end,
+})
+local Toggle = Tab:CreateToggle({
+   Name = "Enable hitbox Gefs",
+   CurrentValue = false,
+   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- destroy hurtbox find loop destroy and find if value true 
+   end,
+})
+local Toggle = Tab:CreateToggle({
+   Name = "Enable hitbox sgef",
+   CurrentValue = false,
+   Flag = "Toggle33", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- destroy hurtbox find loop destroy and find if value true 
+   end,
+})
+local Slider = Tab:CreateSlider({
+   Name = "Hitbox for gefs",
+   Range = {3, 20},
+   Increment = 10,
+   Suffix = "Bananas",
+   CurrentValue = 4,
+   Flag = "Slider11", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- The function that takes place when the slider changes
+   -- The variable (Value) is a number which correlates to the value the slider is currently at
+   end,
+})
+local Slider = Tab:CreateSlider({
+   Name = "Hitbox for sgef",
+   Range = {3, 20},
+   Increment = 10,
+   Suffix = "Bananas",
+   CurrentValue = 10,
+   Flag = "Slider22", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   -- The function that takes place when the slider changes
+   -- The variable (Value) is a number which correlates to the value the slider is currently at
+   end,
+})
 local Tab = Window:CreateTab("msc", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("server",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 local TeleportService = game:GetService("TeleportService")
@@ -1740,6 +1815,11 @@ local Button = Tab:CreateButton({
         end
     end,
 })
-
+local Button = Tab:CreateButton({
+   Name = "House 2",
+   Callback = function()
+   -- auto build house2
+   end,
+})
 
 ArrayField:LoadConfiguration() --di bagian bawah semua kode
