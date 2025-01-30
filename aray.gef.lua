@@ -2063,6 +2063,7 @@ local Button = Tab:CreateButton({
    Name = "House 2",
    Callback = function()
    -- auto build house2
+print("coming soon house2")
    end,
 })
 
