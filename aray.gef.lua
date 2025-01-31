@@ -455,7 +455,7 @@ Tab:CreateButton({
         end
     end,
 })
-local Section = Tab:CreateSection(yer", true)
+local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
