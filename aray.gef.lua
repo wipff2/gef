@@ -688,7 +688,57 @@ local function checkTool()
         end
     end
 end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
+local HealingEnabled = false -- Default toggle is OFF
+
+-- Fungsi untuk penyembuhan
+local function HealPlayer()
+    if not HealingEnabled then return end -- Tidak melakukan apa-apa jika toggle OFF
+
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
+
+    -- Cek apakah pemain memegang Medkit
+    local Tool = Character:FindFirstChild("Medkit")
+    if Tool then
+        -- Progress bar langsung penuh
+        local Progress = Tool:FindFirstChild("Progress")
+        if Progress and Progress:IsA("NumberValue") then
+            Progress.Value = 1
+        end
+
+        -- Fire event penyembuhan
+        local HealEvent = Tool:FindFirstChild("Heal")
+        if HealEvent and HealEvent:IsA("RemoteEvent") then
+            HealEvent:FireServer()
+        end
+
+        print("Healing activated automatically!")
+    end
+end
+
+-- Loop untuk mengecek setiap frame apakah tool dipegang
+RunService.Heartbeat:Connect(HealPlayer)
+
+-- Fungsi untuk mengubah status toggle
+local function ToggleHealing(Value)
+    HealingEnabled = Value
+    
+end
+
+-- Membuat toggle pada tab UI dengan callback
+local Toggle = Tab:CreateToggle({
+   Name = "Fast heal Medkit", -- Nama toggle
+   CurrentValue = false, -- Default OFF
+   Flag = "HealingToggle", -- Flag untuk konfigurasi
+   Callback = function(Value)
+       ToggleHealing(Value) -- Memanggil fungsi untuk mengaktifkan/mematikan fungsi
+   end,
+})
 -- Loop untuk mengecek setiap frame
 RunService.Heartbeat:Connect(checkTool)
 local RunService = game:GetService("RunService")
