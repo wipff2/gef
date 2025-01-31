@@ -1330,9 +1330,9 @@ end
 -- Fungsi untuk menangani ESP GEF
 local function updateGEFESP()
     local gef = workspace:FindFirstChild("GEF")
-    if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") and gef.RootPart:FindFirstChild("Health") then
+    if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") and gef:FindFirstChild("Health") then
         local hitbox = gef.RootPart.Hitbox
-        local health = gef.RootPart.Health.Value
+        local health = gef.Health.Value
         local distance = getDistance(hitbox.Position)
         updateESP(hitbox, "GEF", health, distance)
     else
