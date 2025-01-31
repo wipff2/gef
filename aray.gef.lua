@@ -36,7 +36,7 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-local Tab = Window:CreateTab("top", Anchor) -- Title, Image
+local Tab = Window:CreateTab("Tops", "anchor")
 
 -- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
@@ -1365,7 +1365,7 @@ Tab:CreateToggle({
         end
     end,
 })
-local Tab = Window:CreateTab("Shop", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("Shop", "anchor")
 local Section = Tab:CreateSection("sell",true)
 local autoSellAll = false -- Status toggle untuk Auto Sell All
 
@@ -1555,7 +1555,7 @@ for _, item in ipairs(items) do
         end,
     })
 end
-local Tab = Window:CreateTab("Players", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("Players", "rewind")
 local Section = Tab:CreateSection("Tools")
 local speaker = game.Players.LocalPlayer
 local currentToolSize = {}
@@ -1873,7 +1873,7 @@ sgefHitboxSlider = Tab:CreateSlider({
         end
     end,
 })
-local Tab = Window:CreateTab("msc", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("Misc", "rewind")
 local Section = Tab:CreateSection("server",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -2027,7 +2027,7 @@ Tab:CreateButton({
     end,
 })
 
-local Tab = Window:CreateTab("auto Buildings", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("Autobuilding", "rewind")
 local Button = Tab:CreateButton({
     Name = "house_one",
     Interact = 'Click',
