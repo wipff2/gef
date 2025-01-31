@@ -656,6 +656,41 @@ function deactivateSpeedBoost()
         speedBoostConnection = nil
     end
 end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Backpack = LocalPlayer:WaitForChild("Backpack")
+
+local ToggleState = false -- Default mati
+
+local Toggle = Tab:CreateToggle({
+   Name = "fast Eat Food",
+   CurrentValue = false,
+   Flag = "AutoEatToggle",
+   Callback = function(Value)
+      ToggleState = Value
+   end,
+})
+
+local function checkTool()
+    if not ToggleState then return end -- Hanya berjalan jika toggle aktif
+
+    local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
+    if Tool and Character:FindFirstChildOfClass("Humanoid") then
+        local Progress = Tool:FindFirstChild("Progress")
+        local EatEvent = Tool:FindFirstChild("Eat")
+
+        if Progress and EatEvent and Progress:IsA("NumberValue") then
+            Progress.Value = 1 -- Set progress bar ke 1
+            EatEvent:FireServer() -- Kirim event ke server
+        end
+    end
+end
+
+-- Loop untuk mengecek setiap frame
+RunService.Heartbeat:Connect(checkTool)
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
