@@ -281,23 +281,25 @@ for _, item in ipairs(items) do
             -- Tunggu 0.2 detik agar karakter sampai ke item
             task.wait(0.2)
 
-            -- Memicu semua ProximityPrompt di sekitar HumanoidRootPart
-            local promptsTriggered = 0
-            for _, descendant in ipairs(workspace:GetDescendants()) do
-                if descendant:IsA("ProximityPrompt") then
-                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                    if promptDistance <= descendant.MaxActivationDistance then
-                        fireproximityprompt(descendant, 0)
-                        task.wait(0.1)
-                        fireproximityprompt(descendant, 1)
-                        promptsTriggered = promptsTriggered + 1
-                        print("Triggered ProximityPrompt")
+            -- Hanya jalankan fireProximityPrompt jika autoTriggerPrompt aktif
+            if autoTriggerPrompt then
+                local promptsTriggered = 0
+                for _, descendant in ipairs(workspace:GetDescendants()) do
+                    if descendant:IsA("ProximityPrompt") then
+                        local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                        if promptDistance <= descendant.MaxActivationDistance then
+                            fireproximityprompt(descendant, 0)
+                            task.wait(0.1)
+                            fireproximityprompt(descendant, 1)
+                            promptsTriggered = promptsTriggered + 1
+                            print("Triggered ProximityPrompt")
+                        end
                     end
                 end
-            end
 
-            if promptsTriggered == 0 then
-                warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
+                if promptsTriggered == 0 then
+                    warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
+                end
             end
 
             -- Kembalikan karakter ke posisi awal jika toggle aktif
