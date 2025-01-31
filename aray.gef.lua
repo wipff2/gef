@@ -36,7 +36,7 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-local Tab = Window:CreateTab("top", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("top", anchor) -- Title, Image
 
 -- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
