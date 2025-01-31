@@ -1764,22 +1764,47 @@ local MaxStaminaInput = Tab:CreateInput({
 local gefsHitboxToggle, sgefHitboxToggle
 local gefsHitboxSlider, sgefHitboxSlider
 
+-- Tabel untuk menyimpan ukuran asli Hitbox
+local originalHitboxSizes = {}
+
+-- Fungsi untuk menyimpan ukuran asli Hitbox
+local function saveOriginalHitboxSizes()
+    for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+        if gef.Name == "Mini GEF" or gef.Name == "Tiny GEF" then
+            local hitbox = gef:FindFirstChild("Hitbox")
+            if hitbox then
+                originalHitboxSizes[gef] = hitbox.Size
+            end
+        end
+    end
+end
+
+-- Panggil fungsi untuk menyimpan ukuran asli saat script pertama kali dijalankan
+saveOriginalHitboxSizes()
+
 gefsHitboxToggle = Tab:CreateToggle({
     Name = "Enable hitbox Gefs",
     CurrentValue = false,
     Flag = "Toggle33",
     Callback = function(Value)
         if Value then
+            -- Simpan ukuran asli Hitbox jika belum disimpan
+            saveOriginalHitboxSizes()
+
+            -- Hubungkan event untuk Mini GEF yang baru ditambahkan
             gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
                 if child.Name == "Mini GEF" then
                     local hitbox = child:FindFirstChild("Hitbox")
                     if hitbox then
+                        -- Simpan ukuran asli Hitbox
+                        originalHitboxSizes[child] = hitbox.Size
+                        -- Ubah ukuran Hitbox
                         hitbox.Size = Vector3.new(gefsHitboxSlider, gefsHitboxSlider, gefsHitboxSlider)
                     end
                 end
             end)
 
-            -- Set hitbox size for existing Mini GEFs
+            -- Ubah ukuran Hitbox untuk Mini GEF yang sudah ada
             for _, gef in ipairs(workspace.GEFs:GetChildren()) do
                 if gef.Name == "Mini GEF" then
                     local hitbox = gef:FindFirstChild("Hitbox")
@@ -1789,9 +1814,20 @@ gefsHitboxToggle = Tab:CreateToggle({
                 end
             end
         else
+            -- Nonaktifkan toggle dan kembalikan ukuran Hitbox ke semula
             if gefsConnection then
                 gefsConnection:Disconnect()
                 gefsConnection = nil
+            end
+
+            -- Kembalikan ukuran Hitbox untuk Mini GEF
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Mini GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox and originalHitboxSizes[gef] then
+                        hitbox.Size = originalHitboxSizes[gef]
+                    end
+                end
             end
         end
     end,
@@ -1803,16 +1839,23 @@ sgefHitboxToggle = Tab:CreateToggle({
     Flag = "Toggle34",
     Callback = function(Value)
         if Value then
+            -- Simpan ukuran asli Hitbox jika belum disimpan
+            saveOriginalHitboxSizes()
+
+            -- Hubungkan event untuk Tiny GEF yang baru ditambahkan
             sgefConnection = workspace.GEFs.ChildAdded:Connect(function(child)
                 if child.Name == "Tiny GEF" then
                     local hitbox = child:FindFirstChild("Hitbox")
                     if hitbox then
+                        -- Simpan ukuran asli Hitbox
+                        originalHitboxSizes[child] = hitbox.Size
+                        -- Ubah ukuran Hitbox
                         hitbox.Size = Vector3.new(sgefHitboxSlider, sgefHitboxSlider, sgefHitboxSlider)
                     end
                 end
             end)
 
-            -- Set hitbox size for existing Tiny GEFs
+            -- Ubah ukuran Hitbox untuk Tiny GEF yang sudah ada
             for _, gef in ipairs(workspace.GEFs:GetChildren()) do
                 if gef.Name == "Tiny GEF" then
                     local hitbox = gef:FindFirstChild("Hitbox")
@@ -1822,9 +1865,20 @@ sgefHitboxToggle = Tab:CreateToggle({
                 end
             end
         else
+            -- Nonaktifkan toggle dan kembalikan ukuran Hitbox ke semula
             if sgefConnection then
                 sgefConnection:Disconnect()
                 sgefConnection = nil
+            end
+
+            -- Kembalikan ukuran Hitbox untuk Tiny GEF
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if gef.Name == "Tiny GEF" then
+                    local hitbox = gef:FindFirstChild("Hitbox")
+                    if hitbox and originalHitboxSizes[gef] then
+                        hitbox.Size = originalHitboxSizes[gef]
+                    end
+                end
             end
         end
     end,
@@ -1839,7 +1893,7 @@ gefsHitboxSlider = Tab:CreateSlider({
     Flag = "Slider11",
     Callback = function(Value)
         gefsHitboxSlider = Value
-        if gefsHitboxToggle then
+        if gefsHitboxToggle.CurrentValue then
             for _, gef in ipairs(workspace.GEFs:GetChildren()) do
                 if gef.Name == "Mini GEF" then
                     local hitbox = gef:FindFirstChild("Hitbox")
@@ -1861,7 +1915,7 @@ sgefHitboxSlider = Tab:CreateSlider({
     Flag = "Slider22",
     Callback = function(Value)
         sgefHitboxSlider = Value
-        if sgefHitboxToggle then
+        if sgefHitboxToggle.CurrentValue then
             for _, gef in ipairs(workspace.GEFs:GetChildren()) do
                 if gef.Name == "Tiny GEF" then
                     local hitbox = gef:FindFirstChild("Hitbox")
