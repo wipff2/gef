@@ -455,7 +455,7 @@ Tab:CreateButton({
         end
     end,
 })
-local Section = Tab:CreateSection("player", true)
+local Section = Tab:CreateSection(yer", true)
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
@@ -1365,7 +1365,7 @@ Tab:CreateToggle({
         end
     end,
 })
-local Tab = Window:CreateTab("Shop", "anchor")
+local Tab = Window:CreateTab("Shop", "store")
 local Section = Tab:CreateSection("sell",true)
 local autoSellAll = false -- Status toggle untuk Auto Sell All
 
@@ -1555,7 +1555,7 @@ for _, item in ipairs(items) do
         end,
     })
 end
-local Tab = Window:CreateTab("Players", "rewind")
+local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Tools")
 local speaker = game.Players.LocalPlayer
 local currentToolSize = {}
@@ -1927,7 +1927,7 @@ sgefHitboxSlider = Tab:CreateSlider({
         end
     end,
 })
-local Tab = Window:CreateTab("Misc", "rewind")
+local Tab = Window:CreateTab("Misc", "braces")
 local Section = Tab:CreateSection("server",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -2081,7 +2081,7 @@ Tab:CreateButton({
     end,
 })
 
-local Tab = Window:CreateTab("Autobuilding", "rewind")
+local Tab = Window:CreateTab("Autobuilding", "hammer")
 local Button = Tab:CreateButton({
     Name = "house_one",
     Interact = 'Click',
