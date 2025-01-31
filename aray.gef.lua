@@ -1695,52 +1695,45 @@ gefsHitboxToggle = Tab:CreateToggle({
             followPart.CanCollide = false
             followPart.Parent = workspace
 
-            -- Buat BodyVelocity untuk mengikuti karakter
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Parent = followPart
-
-            -- Hubungkan part ke depan karakter
+            -- Dapatkan karakter pemain
             local player = game.Players.LocalPlayer
             local character = player.Character or player.CharacterAdded:Wait()
             local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
             if humanoidRootPart then
                 -- Posisikan part di depan karakter
-                local offset = humanoidRootPart.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -5))
-                followPart.CFrame = humanoidRootPart.CFrame + offset
+                local offset = CFrame.new(0, 0, -5) -- 5 studs di depan karakter
+                followPart.CFrame = humanoidRootPart.CFrame * offset
 
-                -- Buat weld untuk menghubungkan part ke karakter
-                local weld = Instance.new("Weld")
-                weld.Part0 = humanoidRootPart
-                weld.Part1 = followPart
-                weld.C0 = CFrame.new(0, 0, -5) -- Posisi relatif di depan karakter
-                weld.Parent = followPart
-            end
+                -- Buat BodyVelocity untuk mengikuti karakter
+                local bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Parent = followPart
 
-            -- Hubungkan semua Hitbox dari Tiny GEF dan Mini GEF ke followPart
-            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                if gef.Name == "Tiny GEF" or gef.Name == "Mini GEF" then
-                    local hitbox = gef:FindFirstChild("Hitbox")
-                    if hitbox then
-                        local weld = Instance.new("Weld")
-                        weld.Part0 = followPart
-                        weld.Part1 = hitbox
-                        weld.C0 = CFrame.new() -- Posisi relatif
-                        weld.Parent = hitbox
-                        table.insert(welds, weld) -- Simpan weld ke tabel
+                -- Buat loop untuk mengikuti karakter
+                game:GetService("RunService").Heartbeat:Connect(function()
+                    if followPart and humanoidRootPart then
+                        -- Perbarui posisi part relatif terhadap karakter
+                        followPart.CFrame = humanoidRootPart.CFrame * offset
+                    end
+                end)
+
+                -- Hubungkan semua Hitbox dari Tiny GEF dan Mini GEF ke followPart
+                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                    if gef.Name == "Tiny GEF" or gef.Name == "Mini GEF" then
+                        local hitbox = gef:FindFirstChild("Hitbox")
+                        if hitbox then
+                            local weld = Instance.new("Weld")
+                            weld.Part0 = followPart
+                            weld.Part1 = hitbox
+                            weld.C0 = CFrame.new() -- Posisi relatif
+                            weld.Parent = hitbox
+                            table.insert(welds, weld) -- Simpan weld ke tabel
+                        end
                     end
                 end
             end
-
-            -- Buat loop untuk mengikuti karakter
-            game:GetService("RunService").Heartbeat:Connect(function()
-                if followPart and humanoidRootPart then
-                    local offset = humanoidRootPart.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -5))
-                    followPart.CFrame = humanoidRootPart.CFrame + offset
-                end
-            end)
         else
             -- Hapus part dan welds jika toggle dinonaktifkan
             if followPart then
