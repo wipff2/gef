@@ -4,7 +4,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Deepmarian hb",
-   Icon = anchor, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = Anchor, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Rayfield Interface",
    LoadingSubtitle = "by -",
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
@@ -36,7 +36,7 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-local Tab = Window:CreateTab("top", anchor) -- Title, Image
+local Tab = Window:CreateTab("top", Anchor) -- Title, Image
 
 -- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
