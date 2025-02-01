@@ -1760,59 +1760,32 @@ local SliderCrowbar = Tab:CreateSlider({
        end
    end,
 })
-local gefsToggle = Tab:CreateToggle({
-    Name = "No gef mini damage",
+local gefsConnection, sgefConnection
+
+local gefToggle = Tab:CreateToggle({
+    Name = "Godmode",
     CurrentValue = false,
-    Flag = "Toggle33",
+    Flag = "Toggle_GEF",
     Callback = function(Value)
         if Value then
-            -- Start detecting and destroying Hurtbox for Mini GEF
+            -- Start detecting and destroying Hurtbox for Mini GEF & Tiny GEF
             gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
-                if child.Name == "Mini GEF" and child:FindFirstChild("Hurtbox") then
+                if (child.Name == "Mini GEF" or child.Name == "Tiny GEF") and child:FindFirstChild("Hurtbox") then
                     child.Hurtbox:Destroy()
                 end
             end)
 
-            -- Destroy existing Hurtbox
+            -- Destroy existing Hurtbox for Mini GEF & Tiny GEF
             for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                if gef.Name == "Mini GEF" and gef:FindFirstChild("Hurtbox") then
+                if (gef.Name == "Mini GEF" or gef.Name == "Tiny GEF") and gef:FindFirstChild("Hurtbox") then
                     gef.Hurtbox:Destroy()
                 end
             end
         else
-            -- Stop detecting new Mini GEFs
+            -- Stop detecting new Mini GEFs & Tiny GEFs
             if gefsConnection then
                 gefsConnection:Disconnect()
                 gefsConnection = nil
-            end
-        end
-    end,
-})
-
-local sgefToggle = Tab:CreateToggle({
-    Name = "No gef small damage",
-    CurrentValue = false,
-    Flag = "Toggle34",
-    Callback = function(Value)
-        if Value then
-            -- Start detecting and destroying Hurtbox for Tiny GEF
-            sgefConnection = workspace.GEFs.ChildAdded:Connect(function(child)
-                if child.Name == "Tiny GEF" and child:FindFirstChild("Hurtbox") then
-                    child.Hurtbox:Destroy()
-                end
-            end)
-
-            -- Destroy existing Hurtbox
-            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                if gef.Name == "Tiny GEF" and gef:FindFirstChild("Hurtbox") then
-                    gef.Hurtbox:Destroy()
-                end
-            end
-        else
-            -- Stop detecting new Tiny GEFs
-            if sgefConnection then
-                sgefConnection:Disconnect()
-                sgefConnection = nil
             end
         end
     end,
