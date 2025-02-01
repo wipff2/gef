@@ -505,6 +505,228 @@ Tab:CreateButton(
         end
     }
 )
+
+local Tab = Window:CreateTab("Shop", "store")
+local Section = Tab:CreateSection("sell", true)
+local autoSellAll = false -- Status toggle untuk Auto Sell All
+
+-- Fungsi untuk menjual semua item di Backpack
+local function sellAllItems()
+    local player = game.Players.LocalPlayer
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        warn("Backpack not found.")
+        return
+    end
+
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
+            print("Sold item:", item.Name)
+        end
+    end
+end
+
+-- Toggle untuk Auto Sell All
+Tab:CreateToggle(
+    {
+        Name = "Auto Sell All",
+        CurrentValue = false,
+        Flag = "AutoSellAllToggle",
+        Callback = function(value)
+            autoSellAll = value
+            print("Auto Sell All:", autoSellAll)
+
+            if autoSellAll then
+                -- Menjalankan loop untuk menjual semua item secara berkala
+                task.spawn(
+                    function()
+                        while autoSellAll do
+                            sellAllItems()
+                            task.wait(1) -- Delay untuk menghindari spam
+                        end
+                    end
+                )
+            end
+        end
+    }
+)
+
+local selectedItems = {} -- Menyimpan item yang dipilih dari dropdown
+local sellSpecificSelected = false -- Status toggle untuk menjual item yang dipilih
+
+-- Daftar nama item tetap, termasuk GPS
+local predefinedItems = {
+    "Hammer",
+    "Handgun",
+    "Medkit",
+    "Bullets",
+    "Bat",
+    "Shotgun",
+    "Shells",
+    "Lantern",
+    "Crowbar",
+    "Money",
+    "Soda",
+    "Food",
+    "GPS"
+}
+
+-- Fungsi untuk menjual item berdasarkan nama
+local function sellItemByName(itemName)
+    local player = game.Players.LocalPlayer
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        warn("Backpack not found.")
+        return
+    end
+
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item.Name == itemName then
+            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
+            print("Sold item:", item.Name)
+            break -- Hentikan loop setelah item ditemukan dan dijual
+        end
+    end
+end
+
+-- Dropdown untuk memilih item yang akan dijual
+Tab:CreateDropdown(
+    {
+        Name = "Select Items to Sell",
+        Options = predefinedItems, -- Daftar nama item tetap
+        MultiSelection = true, -- Pastikan MultiSelection aktif
+        Flag = "SelectedItemsDropdown",
+        Callback = function(selected)
+            -- Pastikan `selected` selalu berupa tabel
+            if typeof(selected) == "string" then
+                selectedItems = {selected} -- Jika dropdown hanya mengembalikan satu string
+            else
+                selectedItems = selected -- Jika multi-seleksi, gunakan tabel langsung
+            end
+            print("Selected items to sell:", selectedItems)
+        end
+    }
+)
+
+-- Toggle untuk menjual item yang dipilih di dropdown
+local Section
+Tab:CreateToggle(
+    {
+        Name = "Sell Specific Items",
+        CurrentValue = false,
+        Flag = "SellSpecificSelectedToggle",
+        Callback = function(value)
+            sellSpecificSelected = value
+            print("Sell Specific Selected Items:", sellSpecificSelected)
+
+            if sellSpecificSelected then
+                -- Menjual semua item yang dipilih saat toggle diaktifkan
+                task.spawn(
+                    function()
+                        while sellSpecificSelected do
+                            for _, itemName in ipairs(selectedItems) do
+                                sellItemByName(itemName)
+                            end
+                            task.wait(1) -- Delay untuk menghindari spam
+                        end
+                    end
+                )
+            end
+        end
+    }
+)
+local Section = Tab:CreateSection("shop", true)
+local Section = Tab:CreateSection("upgrade", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
+-- Membuat Button untuk MaxStamina
+Tab:CreateButton(
+    {
+        Name = "Purchase Max Stamina",
+        Callback = function()
+            local args = {
+                [1] = "MaxStamina"
+            }
+            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+            print("Purchased Max Stamina")
+        end
+    }
+)
+
+-- Membuat Button untuk StaminaRegen
+Tab:CreateButton(
+    {
+        Name = "Purchase Stamina Regen",
+        Callback = function()
+            local args = {
+                [1] = "StaminaRegen"
+            }
+            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+            print("Purchased Stamina Regen")
+        end
+    }
+)
+
+-- Membuat Button untuk Storage
+Tab:CreateButton(
+    {
+        Name = "Purchase Storage",
+        Callback = function()
+            local args = {
+                [1] = "Storage"
+            }
+            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
+            print("Purchased Storage")
+        end
+    }
+)
+local Section = Tab:CreateSection("buy", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
+-- Fungsi untuk mencari semua item di toko dan otomatis membelinya
+local function autoBuyItem(itemName)
+    -- Mencari seluruh toko di Workspace.Buildings
+    for _, building in ipairs(workspace.Buildings:GetChildren()) do
+        if building:IsA("Model") and building:FindFirstChild("Nodes") then
+            local nodes = building:FindFirstChild("Nodes")
+            local room = nodes and nodes:FindFirstChild("Room")
+            local shop = room and room:FindFirstChild("Shop")
+            local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
+            local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
+
+            -- Validasi keberadaan folder item
+            if itemFolder then
+                local item = itemFolder:FindFirstChild(itemName)
+
+                if item and item:IsA("ValueBase") then
+                    local price = item.Value
+
+                    -- Menjalankan FireServer untuk membeli item
+                    local args = {
+                        [1] = item
+                    }
+                    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
+                    print("BuyItem event fired for", itemName)
+                    return
+                end
+            end
+        end
+    end
+
+    -- Jika tidak ditemukan
+    warn("Item", itemName, "not found in any Shop.")
+end
+
+-- Membuat tombol untuk membeli item secara otomatis
+local items = {"Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun", "Shells"}
+for _, item in ipairs(items) do
+    Tab:CreateButton(
+        {
+            Name = "Buy ?1 " .. item,
+            Callback = function()
+                autoBuyItem(item)
+            end
+        }
+    )
+end
+local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -1108,707 +1330,7 @@ end
 
 -- Modifikasi fungsi untuk membuat atau memperbarui ESP
 local function createOrUpdateESP(player)
-    if player == game.Players.LocalPlayer then
-        return
-    end -- Hindari ESP untuk pemain lokal
-
-    local character = player.Character
-    if not character then
-        return
-    end
-
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoidRootPart or not humanoid then
-        return
-    end
-
-    -- Jika ESP belum ada, buat BillboardGui baru
-    if not espElements[player] then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Adornee = humanoidRootPart
-        billboard.Size = UDim2.new(0, 200, 0, 70) -- Perbesar ukuran untuk inventory
-        billboard.AlwaysOnTop = true
-        billboard.Name = "PlayerESP"
-
-        -- Tambahkan label untuk nama
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Name = "NameLabel"
-        nameLabel.Size = UDim2.new(1, 0, 0.2, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextScaled = true
-        nameLabel.Parent = billboard
-
-        -- Tambahkan label untuk health
-        local healthLabel = Instance.new("TextLabel")
-        healthLabel.Name = "HealthLabel"
-        healthLabel.Size = UDim2.new(1, 0, 0.2, 0)
-        healthLabel.Position = UDim2.new(0, 0, 0.2, 0)
-        healthLabel.BackgroundTransparency = 1
-        healthLabel.TextScaled = true
-        healthLabel.Parent = billboard
-
-        -- Tambahkan label untuk jarak
-        local distanceLabel = Instance.new("TextLabel")
-        distanceLabel.Name = "DistanceLabel"
-        distanceLabel.Size = UDim2.new(1, 0, 0.2, 0)
-        distanceLabel.Position = UDim2.new(0, 0, 0.4, 0)
-        distanceLabel.BackgroundTransparency = 1
-        distanceLabel.TextScaled = true
-        distanceLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-        distanceLabel.Parent = billboard
-
-        -- Tambahkan label untuk inventory
-        local inventoryLabel = Instance.new("TextLabel")
-        inventoryLabel.Name = "InventoryLabel"
-        inventoryLabel.Size = UDim2.new(1, 0, 0.2, 0)
-        inventoryLabel.Position = UDim2.new(0, 0, 0.6, 0)
-        inventoryLabel.BackgroundTransparency = 1
-        inventoryLabel.TextScaled = true
-        inventoryLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-        inventoryLabel.Parent = billboard
-
-        billboard.Parent = humanoidRootPart
-        espElements[player] = billboard
-    end
-
-    -- Perbarui konten ESP
-    local billboard = espElements[player]
-    if displayName and espActive then
-        billboard.NameLabel.Text = player.Name
-        billboard.NameLabel.Visible = true
-    else
-        billboard.NameLabel.Visible = false
-    end
-
-    if displayHealth and espActive then
-        billboard.HealthLabel.Text = "Health: " .. math.floor(humanoid.Health)
-        billboard.HealthLabel.TextColor3 = getHealthColor(humanoid.Health)
-        billboard.HealthLabel.Visible = true
-    else
-        billboard.HealthLabel.Visible = false
-    end
-
-    if displayDistance and espActive then
-        local localPlayer = game.Players.LocalPlayer
-        local distance =
-            localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and
-            (localPlayer.Character.HumanoidRootPart.Position - humanoidRootPart.Position).Magnitude or
-            0
-        billboard.DistanceLabel.Text = "Distance: " .. math.floor(distance)
-        billboard.DistanceLabel.Visible = true
-    else
-        billboard.DistanceLabel.Visible = false
-    end
-
-    if displayInventory and espActive then
-        billboard.InventoryLabel.Text = "Inventory: " .. getInventoryValue(player)
-        billboard.InventoryLabel.Visible = true
-    else
-        billboard.InventoryLabel.Visible = false
-    end
-end
-
--- Fungsi untuk menghapus semua ESP
-local function removeAllESP()
-    for player, billboard in pairs(espElements) do
-        if billboard then
-            billboard:Destroy()
-        end
-    end
-    espElements = {} -- Reset tabel ESP
-end
-
--- Toggle ESP
-Tab:CreateToggle(
-    {
-        Name = "Enable ESP",
-        CurrentValue = false,
-        Flag = "EnableESP",
-        Callback = function(Value)
-            espActive = Value
-            if not espActive then
-                removeAllESP()
-            else
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    createOrUpdateESP(player)
-                end
-            end
-        end
-    }
-)
-
--- Toggle nama
-Tab:CreateToggle(
-    {
-        Name = "Display Name",
-        CurrentValue = false,
-        Flag = "DisplayName",
-        Callback = function(Value)
-            displayName = Value
-            if espActive then
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    createOrUpdateESP(player)
-                end
-            end
-        end
-    }
-)
-
--- Toggle health
-Tab:CreateToggle(
-    {
-        Name = "Display Health",
-        CurrentValue = false,
-        Flag = "DisplayHealth",
-        Callback = function(Value)
-            displayHealth = Value
-            if espActive then
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    createOrUpdateESP(player)
-                end
-            end
-        end
-    }
-)
-
--- Toggle jarak
-Tab:CreateToggle(
-    {
-        Name = "Display Distance",
-        CurrentValue = false,
-        Flag = "DisplayDistance",
-        Callback = function(Value)
-            displayDistance = Value
-            if espActive then
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    createOrUpdateESP(player)
-                end
-            end
-        end
-    }
-)
-
--- Toggle untuk menampilkan inventory
-Tab:CreateToggle(
-    {
-        Name = "Display Inventory",
-        CurrentValue = false,
-        Flag = "DisplayInventory",
-        Callback = function(Value)
-            displayInventory = Value
-            if espActive then
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    createOrUpdateESP(player)
-                end
-            end
-        end
-    }
-)
-
--- Update loop untuk memperbarui ESP secara terus-menerus
-game:GetService("RunService").RenderStepped:Connect(
-    function()
-        if espActive then
-            for _, player in pairs(game.Players:GetPlayers()) do
-                createOrUpdateESP(player)
-            end
-        end
-    end
-)
-local ESPEnabled = {Tiny = false, Mini = false, Big = false} -- Status toggle ESP
-local ESPConnections = {} -- Menyimpan koneksi untuk pembaruan
-local player = game.Players.LocalPlayer
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local espMiniGEFEnabled = false
-local espTinyGEFEnabled = false
-local activeESP = {
-    MiniGEF = {},
-    TinyGEF = {}
-}
-
--- Utility Function: Menghitung jarak
-local function getDistance(position)
-    local character = LocalPlayer.Character
-    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        return (humanoidRootPart.Position - position).Magnitude
-    end
-    return math.huge -- Jika tidak ada karakter, kembalikan jarak maksimum
-end
-
--- Utility Function: Membuat ESP
-local function createESP(object, text, color, category)
-    if not object or not category then
-        return
-    end
-
-    -- Cek apakah BillboardGui sudah ada
-    local billboard = object:FindFirstChild("ESP_Billboard")
-    if not billboard then
-        billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Billboard"
-        billboard.Size = UDim2.new(0, 200, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)
-        billboard.Adornee = object
-        billboard.AlwaysOnTop = true
-
-        local textLabel = Instance.new("TextLabel", billboard)
-        textLabel.Name = "ESP_Label"
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextColor3 = color
-        textLabel.TextScaled = true
-
-        billboard.Parent = object
-    end
-
-    -- Perbarui teks dan warna
-    local label = billboard:FindFirstChild("ESP_Label")
-    if label then
-        label.Text = text
-        label.TextColor3 = color
-    end
-
-    -- Simpan ke daftar ESP aktif
-    table.insert(activeESP[category], billboard)
-end
-
--- Fungsi untuk menghapus ESP berdasarkan kategori
-local function clearESPByCategory(category)
-    if not activeESP[category] then
-        return
-    end
-    for _, billboard in ipairs(activeESP[category]) do
-        if billboard and billboard.Parent then
-            billboard:Destroy()
-        end
-    end
-    activeESP[category] = {}
-end
-
--- Fungsi untuk memperbarui ESP untuk model tertentu
-local function updateModelESP(modelName, category, isEnabled)
-    if not isEnabled then
-        clearESPByCategory(category)
-        return
-    end
-
-    local gefs = workspace:FindFirstChild("GEFs")
-    if not gefs then
-        warn("workspace.GEFs not found")
-        return
-    end
-
-    for _, model in ipairs(gefs:GetChildren()) do
-        if model:IsA("Model") and model.Name == modelName then
-            local head = model:FindFirstChild("Head")
-            local health = model:FindFirstChild("Health")
-
-            if head and health and head:IsA("MeshPart") and health:IsA("NumberValue") then
-                local healthValue = health.Value
-                local distance = getDistance(head.Position)
-
-                -- Tentukan warna berdasarkan nilai kesehatan
-                local color = Color3.new(0, 1, 0) -- Hijau
-                if healthValue < 10 then
-                    color = Color3.new(1, 0, 0) -- Merah
-                elseif healthValue < 60 then
-                    color = Color3.new(1, 0.5, 0) -- Oranye
-                end
-
-                -- Buat atau perbarui ESP
-                createESP(
-                    head,
-                    modelName .. "\nHealth: " .. healthValue .. "\nDistance: " .. math.floor(distance),
-                    color,
-                    category
-                )
-            end
-        end
-    end
-end
-
--- Toggle untuk ESP Mini GEF
-Tab:CreateToggle(
-    {
-        Name = "ESP Mini GEF",
-        CurrentValue = false,
-        Flag = "MiniGEFESP",
-        Callback = function(value)
-            espMiniGEFEnabled = value
-            if value then
-                print("ESP Mini GEF enabled")
-            else
-                print("ESP Mini GEF disabled")
-            end
-        end
-    }
-)
-
--- Toggle untuk ESP Tiny GEF
-Tab:CreateToggle(
-    {
-        Name = "ESP Tiny GEF",
-        CurrentValue = false,
-        Flag = "TinyGEFESP",
-        Callback = function(value)
-            espTinyGEFEnabled = value
-            if value then
-                print("ESP Tiny GEF enabled")
-            else
-                print("ESP Tiny GEF disabled")
-            end
-        end
-    }
-)
-
--- Loop untuk memperbarui ESP
-RunService.RenderStepped:Connect(
-    function()
-        if espMiniGEFEnabled then
-            updateModelESP("Mini GEF", "MiniGEF", true)
-        else
-            updateModelESP("Mini GEF", "MiniGEF", false)
-        end
-
-        if espTinyGEFEnabled then
-            updateModelESP("Tiny GEF", "TinyGEF", true)
-        else
-            updateModelESP("Tiny GEF", "TinyGEF", false)
-        end
-    end
-)
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Variabel untuk menyimpan status ESP dan koneksi
-local ESPEnabled = {
-    GEF = false
-}
-local ESPConnections = {}
-
--- Utility Function: Menghitung jarak
-local function getDistance(position)
-    local character = LocalPlayer.Character
-    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        return (humanoidRootPart.Position - position).Magnitude
-    end
-    return math.huge -- Jika tidak ada karakter, kembalikan jarak maksimum
-end
-
--- Utility Function: Membuat atau memperbarui ESP
-local function updateESP(object, title, health, distance)
-    if not object then
-        return
-    end
-
-    -- Cek apakah BillboardGui sudah ada
-    local billboard = object:FindFirstChild("ESP_Billboard")
-    if not billboard then
-        billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Billboard"
-        billboard.Size = UDim2.new(0, 200, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)
-        billboard.Adornee = object
-        billboard.AlwaysOnTop = true
-
-        local textLabel = Instance.new("TextLabel", billboard)
-        textLabel.Name = "ESP_Label"
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextScaled = true
-        textLabel.TextColor3 = Color3.new(0, 1, 0) -- Default hijau
-
-        billboard.Parent = object
-    end
-
-    -- Perbarui teks dan warna berdasarkan kesehatan
-    local label = billboard:FindFirstChild("ESP_Label")
-    if label then
-        local color = Color3.new(0, 1, 0) -- Hijau
-        if health < 10 then
-            color = Color3.new(1, 0, 0) -- Merah
-        elseif health < 60 then
-            color = Color3.new(1, 0.5, 0) -- Oranye
-        end
-
-        label.Text = title .. "\nHealth: " .. health .. "\nDistance: " .. math.floor(distance)
-        label.TextColor3 = color
-    end
-end
-
--- Fungsi untuk menangani ESP GEF
-local function updateGEFESP()
-    local gef = workspace:FindFirstChild("GEF")
-    if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") and gef:FindFirstChild("Health") then
-        local hitbox = gef.RootPart.Hitbox
-        local health = gef.Health.Value
-        local distance = getDistance(hitbox.Position)
-        updateESP(hitbox, "GEF", health, distance)
-    else
-        warn("GEF not found or missing components")
-    end
-end
-
--- Membuat Toggle untuk GEF ESP
-Tab:CreateToggle(
-    {
-        Name = "ESP GEF",
-        CurrentValue = false,
-        Flag = "ESP_GEF",
-        Callback = function(value)
-            ESPEnabled.GEF = value
-            if value then
-                -- Sambungkan ke Heartbeat untuk memperbarui ESP
-                ESPConnections.GEF = RunService.Heartbeat:Connect(updateGEFESP)
-            else
-                -- Hapus koneksi jika toggle dimatikan
-                if ESPConnections.GEF then
-                    ESPConnections.GEF:Disconnect()
-                    ESPConnections.GEF = nil
-                end
-                -- Hapus ESP dari GEF jika ada
-                local gef = workspace:FindFirstChild("GEF")
-                if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") then
-                    local esp = gef.RootPart.Hitbox:FindFirstChild("ESP_Billboard")
-                    if esp then
-                        esp:Destroy()
-                    end
-                end
-            end
-        end
-    }
-)
-local Tab = Window:CreateTab("Shop", "store")
-local Section = Tab:CreateSection("sell", true)
-local autoSellAll = false -- Status toggle untuk Auto Sell All
-
--- Fungsi untuk menjual semua item di Backpack
-local function sellAllItems()
-    local player = game.Players.LocalPlayer
-    local backpack = player:FindFirstChild("Backpack")
-    if not backpack then
-        warn("Backpack not found.")
-        return
-    end
-
-    for _, item in ipairs(backpack:GetChildren()) do
-        if item:IsA("Tool") then
-            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
-            print("Sold item:", item.Name)
-        end
-    end
-end
-
--- Toggle untuk Auto Sell All
-Tab:CreateToggle(
-    {
-        Name = "Auto Sell All",
-        CurrentValue = false,
-        Flag = "AutoSellAllToggle",
-        Callback = function(value)
-            autoSellAll = value
-            print("Auto Sell All:", autoSellAll)
-
-            if autoSellAll then
-                -- Menjalankan loop untuk menjual semua item secara berkala
-                task.spawn(
-                    function()
-                        while autoSellAll do
-                            sellAllItems()
-                            task.wait(1) -- Delay untuk menghindari spam
-                        end
-                    end
-                )
-            end
-        end
-    }
-)
-
-local selectedItems = {} -- Menyimpan item yang dipilih dari dropdown
-local sellSpecificSelected = false -- Status toggle untuk menjual item yang dipilih
-
--- Daftar nama item tetap, termasuk GPS
-local predefinedItems = {
-    "Hammer",
-    "Handgun",
-    "Medkit",
-    "Bullets",
-    "Bat",
-    "Shotgun",
-    "Shells",
-    "Lantern",
-    "Crowbar",
-    "Money",
-    "Soda",
-    "Food",
-    "GPS"
-}
-
--- Fungsi untuk menjual item berdasarkan nama
-local function sellItemByName(itemName)
-    local player = game.Players.LocalPlayer
-    local backpack = player:FindFirstChild("Backpack")
-    if not backpack then
-        warn("Backpack not found.")
-        return
-    end
-
-    for _, item in ipairs(backpack:GetChildren()) do
-        if item.Name == itemName then
-            game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
-            print("Sold item:", item.Name)
-            break -- Hentikan loop setelah item ditemukan dan dijual
-        end
-    end
-end
-
--- Dropdown untuk memilih item yang akan dijual
-Tab:CreateDropdown(
-    {
-        Name = "Select Items to Sell",
-        Options = predefinedItems, -- Daftar nama item tetap
-        MultiSelection = true, -- Pastikan MultiSelection aktif
-        Flag = "SelectedItemsDropdown",
-        Callback = function(selected)
-            -- Pastikan `selected` selalu berupa tabel
-            if typeof(selected) == "string" then
-                selectedItems = {selected} -- Jika dropdown hanya mengembalikan satu string
-            else
-                selectedItems = selected -- Jika multi-seleksi, gunakan tabel langsung
-            end
-            print("Selected items to sell:", selectedItems)
-        end
-    }
-)
-
--- Toggle untuk menjual item yang dipilih di dropdown
-local Section
-Tab:CreateToggle(
-    {
-        Name = "Sell Specific Items",
-        CurrentValue = false,
-        Flag = "SellSpecificSelectedToggle",
-        Callback = function(value)
-            sellSpecificSelected = value
-            print("Sell Specific Selected Items:", sellSpecificSelected)
-
-            if sellSpecificSelected then
-                -- Menjual semua item yang dipilih saat toggle diaktifkan
-                task.spawn(
-                    function()
-                        while sellSpecificSelected do
-                            for _, itemName in ipairs(selectedItems) do
-                                sellItemByName(itemName)
-                            end
-                            task.wait(1) -- Delay untuk menghindari spam
-                        end
-                    end
-                )
-            end
-        end
-    }
-)
-local Section = Tab:CreateSection("shop", true)
-local Section = Tab:CreateSection("upgrade", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Membuat Button untuk MaxStamina
-Tab:CreateButton(
-    {
-        Name = "Purchase Max Stamina",
-        Callback = function()
-            local args = {
-                [1] = "MaxStamina"
-            }
-            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Max Stamina")
-        end
-    }
-)
-
--- Membuat Button untuk StaminaRegen
-Tab:CreateButton(
-    {
-        Name = "Purchase Stamina Regen",
-        Callback = function()
-            local args = {
-                [1] = "StaminaRegen"
-            }
-            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Stamina Regen")
-        end
-    }
-)
-
--- Membuat Button untuk Storage
-Tab:CreateButton(
-    {
-        Name = "Purchase Storage",
-        Callback = function()
-            local args = {
-                [1] = "Storage"
-            }
-            game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Storage")
-        end
-    }
-)
-local Section = Tab:CreateSection("buy", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Fungsi untuk mencari semua item di toko dan otomatis membelinya
-local function autoBuyItem(itemName)
-    -- Mencari seluruh toko di Workspace.Buildings
-    for _, building in ipairs(workspace.Buildings:GetChildren()) do
-        if building:IsA("Model") and building:FindFirstChild("Nodes") then
-            local nodes = building:FindFirstChild("Nodes")
-            local room = nodes and nodes:FindFirstChild("Room")
-            local shop = room and room:FindFirstChild("Shop")
-            local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
-            local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
-
-            -- Validasi keberadaan folder item
-            if itemFolder then
-                local item = itemFolder:FindFirstChild(itemName)
-
-                if item and item:IsA("ValueBase") then
-                    local price = item.Value
-
-                    -- Menjalankan FireServer untuk membeli item
-                    local args = {
-                        [1] = item
-                    }
-                    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
-                    print("BuyItem event fired for", itemName)
-                    return
-                end
-            end
-        end
-    end
-
-    -- Jika tidak ditemukan
-    warn("Item", itemName, "not found in any Shop.")
-end
-
--- Membuat tombol untuk membeli item secara otomatis
-local items = {"Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun", "Shells"}
-for _, item in ipairs(items) do
-    Tab:CreateButton(
-        {
-            Name = "Buy ?1 " .. item,
-            Callback = function()
-                autoBuyItem(item)
-            end
-        }
-    )
-end
-local Tab = Window:CreateTab("Players", "users-round")
+    if player == gam
 local Section = Tab:CreateSection("Tools")
 local speaker = game.Players.LocalPlayer
 local currentToolSize = {}
