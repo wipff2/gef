@@ -1678,7 +1678,7 @@ local function applyHitbox(tool, size)
 
     tool.Handle.Massless = true
     tool.Handle.Size = Vector3.new(size, size, size)
-    tool.GripPos = Vector3.new(0, 0, 0)
+    tool.GripPos = Vector3.new(0, 0, 2)
     speaker.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
 end
 
@@ -1698,7 +1698,7 @@ local function removeHitbox(tool)
 end
 
 local ToggleBat = Tab:CreateToggle({
-   Name = "MoreHitbox Bat",
+   Name = "Hitbox Bat",
    CurrentValue = false,
    Flag = "Toggle11",
    Callback = function(Value)
@@ -1714,7 +1714,7 @@ local ToggleBat = Tab:CreateToggle({
 })
 
 local ToggleCrowbar = Tab:CreateToggle({
-   Name = "MoreHitbox Crowbar",
+   Name = "Hitbox Crowbar",
    CurrentValue = false,
    Flag = "Toggle22",
    Callback = function(Value)
