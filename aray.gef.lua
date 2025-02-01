@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 local Tab = Window:CreateTab("Tops", "anchor")
-
+local Label = Tab:CreateLabel("My script my Rules ,you love me or hate me i don't care", 4483362458, Color3.fromRGB(255, 255, 255), false) 
 -- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
 
@@ -1759,79 +1759,6 @@ local SliderCrowbar = Tab:CreateSlider({
            applyHitbox(tool, selectedSizeCrowbar)
        end
    end,
-})
-local gefsHitboxToggle
-local followPart = nil
-local welds = {} -- Tabel untuk menyimpan welds
-
-gefsHitboxToggle = Tab:CreateToggle({
-    Name = "Enable GEFs Follow Part",
-    CurrentValue = false,
-    Flag = "ToggleGEFsFollow",
-    Callback = function(Value)
-        if Value then
-            -- Buat part yang akan mengikuti karakter
-            followPart = Instance.new("Part")
-            followPart.Name = "GEFsFollowPart"
-            followPart.Size = Vector3.new(2, 2, 2)
-            followPart.Transparency = 0.5
-            followPart.Color = Color3.new(1, 0, 0)
-            followPart.Anchored = false
-            followPart.CanCollide = false
-            followPart.Parent = workspace
-
-            -- Dapatkan karakter pemain
-            local player = game.Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-
-            if humanoidRootPart then
-                -- Posisikan part di depan karakter
-                local offset = CFrame.new(0, 0, -5) -- 5 studs di depan karakter
-                followPart.CFrame = humanoidRootPart.CFrame * offset
-
-                -- Buat BodyVelocity untuk mengikuti karakter
-                local bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bodyVelocity.Parent = followPart
-
-                -- Buat loop untuk mengikuti karakter
-                game:GetService("RunService").Heartbeat:Connect(function()
-                    if followPart and humanoidRootPart then
-                        -- Perbarui posisi part relatif terhadap karakter
-                        followPart.CFrame = humanoidRootPart.CFrame * offset
-                    end
-                end)
-
-                -- Hubungkan semua Hitbox dari Tiny GEF dan Mini GEF ke followPart
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Tiny GEF" or gef.Name == "Mini GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox then
-                            local weld = Instance.new("Weld")
-                            weld.Part0 = followPart
-                            weld.Part1 = hitbox
-                            weld.C0 = CFrame.new() -- Posisi relatif
-                            weld.Parent = hitbox
-                            table.insert(welds, weld) -- Simpan weld ke tabel
-                        end
-                    end
-                end
-            end
-        else
-            -- Hapus part dan welds jika toggle dinonaktifkan
-            if followPart then
-                followPart:Destroy()
-                followPart = nil
-            end
-
-            for _, weld in ipairs(welds) do
-                weld:Destroy()
-            end
-            welds = {} -- Kosongkan tabel welds
-        end
-    end,
 })
 local gefsToggle = Tab:CreateToggle({
     Name = "No gef mini damage",
