@@ -130,7 +130,7 @@ local function dropHeldItem()
         dropItemEvent:FireServer(heldTool)
         print("Dropped:", heldTool.Name)
     else
-        warn("DropItem event not found.")
+        warn("error no found")
     end
 end
 
@@ -249,14 +249,14 @@ local function findNearestItemOutsideExcludeDistance(itemName)
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
     if not humanoidRootPart then
-        warn("HumanoidRootPart not found.")
+        warn("HumanoidRootPart nf")
         return nil
     end
 
     -- Validasi folder Pickups
     local pickupsFolder = workspace:FindFirstChild("Pickups")
     if not pickupsFolder then
-        warn("Pickups folder not found.")
+        warn("Pickups folder non found.")
         return nil
     end
 
@@ -287,7 +287,7 @@ for _, item in ipairs(items) do
                 local nearestItem = findNearestItemOutsideExcludeDistance(item)
 
                 if not nearestItem then
-                    warn("No " .. item .. " found outside exclude distance.")
+                    warn("No " .. item .. " found.")
                     return
                 end
 
@@ -309,12 +309,12 @@ for _, item in ipairs(items) do
                 -- Menyimpan posisi dan rotasi awal jika toggle aktif
                 if returnToOriginal then
                     originalPosition = humanoidRootPart.CFrame
-                    print("Original position and rotation saved.")
+                    print("Original position saved.")
                 end
 
                 -- Teleportasi ke item terdekat
                 humanoidRootPart.CFrame = nearestItem.CFrame
-                print("Teleported to " .. nearestItem.Name)
+                print("Teleport")
 
                 -- Tunggu 0.2 detik agar karakter sampai ke item
                 task.wait(0.2)
@@ -330,13 +330,11 @@ for _, item in ipairs(items) do
                                 task.wait(0.1)
                                 fireproximityprompt(descendant, 1)
                                 promptsTriggered = promptsTriggered + 1
-                                print("Triggered ProximityPrompt")
                             end
                         end
                     end
 
                     if promptsTriggered == 0 then
-                        warn("No ProximityPrompts found or triggered around " .. nearestItem.Name)
                     end
                 end
 
@@ -344,12 +342,12 @@ for _, item in ipairs(items) do
                 if returnToOriginal and originalPosition then
                     task.wait(1) -- Tunggu 1 detik sebelum kembali
                     humanoidRootPart.CFrame = originalPosition -- Kembalikan ke posisi awal
-                    print("Returned to original position.")
+                    print("Return to pos")
 
                     -- Atur rotasi ke default (primary)
                     task.wait(0.5) -- Tunggu 0.5 detik sebelum mengatur rotasi
                     humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-                    print("Rotation set to default.")
+                    print("Rotation set default.")
                 end
 
                 -- Drop item yang dipegang jika auto-drop aktif
@@ -500,7 +498,7 @@ Tab:CreateButton(
                 Label:Set("Saved Position: " .. positionText)
                 print("Saved Position:", savedPosition)
             else
-                warn("HumanoidRootPart not found. Unable to save position.")
+                warn("HumanoidRootPart not found.")
             end
         end
     }
@@ -515,7 +513,6 @@ local function sellAllItems()
     local player = game.Players.LocalPlayer
     local backpack = player:FindFirstChild("Backpack")
     if not backpack then
-        warn("Backpack not found.")
         return
     end
 
@@ -535,7 +532,6 @@ Tab:CreateToggle(
         Flag = "AutoSellAllToggle",
         Callback = function(value)
             autoSellAll = value
-            print("Auto Sell All:", autoSellAll)
 
             if autoSellAll then
                 -- Menjalankan loop untuk menjual semua item secara berkala
@@ -577,7 +573,6 @@ local function sellItemByName(itemName)
     local player = game.Players.LocalPlayer
     local backpack = player:FindFirstChild("Backpack")
     if not backpack then
-        warn("Backpack not found.")
         return
     end
 
@@ -703,7 +698,7 @@ local function autoBuyItem(itemName)
                         [1] = item
                     }
                     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
-                    print("BuyItem event fired for", itemName)
+                    print("BuyingItem", itemName)
                     return
                 end
             end
@@ -711,7 +706,7 @@ local function autoBuyItem(itemName)
     end
 
     -- Jika tidak ditemukan
-    warn("Item", itemName, "not found in any Shop.")
+    warn("Item", itemName, "not found in Shop.")
 end
 
 -- Membuat tombol untuk membeli item secara otomatis
@@ -791,7 +786,6 @@ Tab:CreateToggle(
         Callback = function(Value)
             InfJumpEnabled = Value
             if InfJumpEnabled then
-                print("Infinite Jump Enabled")
                 local UserInputService = game:GetService("UserInputService")
                 UserInputService.JumpRequest:Connect(
                     function()
@@ -805,8 +799,6 @@ Tab:CreateToggle(
                         end
                     end
                 )
-            else
-                print("Infinite Jump Disabled")
             end
         end
     }
@@ -824,7 +816,6 @@ Tab:CreateToggle(
         Callback = function(Value)
             Clip = not Value -- Membalikkan status Clip
             if Value then
-                print("Noclip Enabled")
                 -- Loop untuk menonaktifkan CanCollide pada semua BasePart
                 local function NoclipLoop()
                     local speaker = game.Players.LocalPlayer
@@ -838,8 +829,6 @@ Tab:CreateToggle(
 
                 -- Memulai loop Noclip
                 Noclipping = game:GetService("RunService").Stepped:Connect(NoclipLoop)
-            else
-                print("Noclip Disabled")
                 if Noclipping then
                     Noclipping:Disconnect()
                     Noclipping = nil
@@ -881,7 +870,6 @@ local Dropdown =
         Callback = function(Option)
             -- Ambil angka dari opsi yang dipilih
             selectedSpeedMultiplier = tonumber(string.match(Option, "%d+"))
-            print("Selected Speed Multiplier:", selectedSpeedMultiplier)
             if tpwalking then
                 deactivateSpeedBoost()
                 activateSpeedBoost(selectedSpeedMultiplier)
@@ -1853,7 +1841,7 @@ Tab:CreateButton(
                 warn(errorMessage)
                 createLogFile(errorMessage)
             else
-                print("Teleport")
+                print("Teleport to server")
                 createLogFile() -- Buat log tanpa error
             end
         end
@@ -1888,10 +1876,8 @@ local shiftLockEnabled = false -- Status toggle Shift Lock
 local function setShiftLock(value)
     if value then
         UserGameSettings.RotationType = Enum.RotationType.CameraRelative
-        print("Shift Lock Enabled")
     else
         UserGameSettings.RotationType = Enum.RotationType.MovementRelative
-        print("Shift Lock Disabled")
     end
 end
 
@@ -1938,8 +1924,6 @@ Tab:CreateButton(
                     child:Destroy()
                 end
                 print("Trees clear.")
-            else
-                warn("workspace.TreesNo does not exist.")
             end
         end
     }
@@ -1977,7 +1961,7 @@ local Button =
                             Ignore = {
                                 Name = "Okay!",
                                 Callback = function()
-                                    print("tool")
+                                    print("tool need hmmer")
                                 end
                             }
                         }
