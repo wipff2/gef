@@ -1621,8 +1621,8 @@ sgefHitboxSlider =
         end
     }
 )
-
 local Section = Tab:CreateSection("Esp")
+local Section = Tab:CreateSection("esp player")
 -- Toggle status
 local espActive = false
 local displayName = false
@@ -1989,7 +1989,8 @@ local Toggle = Tab:CreateToggle({
             end
         end
     end,
- }) 
+ })
+ local Section = Tab:CreateSection("Gef esp")
 local ESPEnabled = {Tiny = false, Mini = false, Big = false} -- Status toggle ESP
 local ESPConnections = {} -- Menyimpan koneksi untuk pembaruan
 local player = game.Players.LocalPlayer
