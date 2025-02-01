@@ -1944,6 +1944,58 @@ local SliderCrowbar =
         end
     }
 )
+local toggleActive = false -- Status toggle
+
+-- Toggle UI dari library yang Anda gunakan
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "One Hit",
+        CurrentValue = false,
+        Flag = "Toggle_Particleemit",
+        Callback = function(Value)
+            toggleActive = Value -- Ubah status toggle
+            if toggleActive then
+                startDetectingParticles()
+            else
+                stopDetectingParticles()
+            end
+        end
+    }
+)
+
+-- Fungsi untuk mendeteksi dan menghapus ParticleEmitter
+local function deleteParticles()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") then
+            obj:Destroy()
+        end
+    end
+end
+
+local connection  -- Menyimpan koneksi event
+
+-- Fungsi untuk mulai deteksi otomatis
+function startDetectingParticles()
+    deleteParticles() -- Hapus partikel yang sudah ada
+
+    connection =
+        workspace.DescendantAdded:Connect(
+        function(obj)
+            if toggleActive and obj:IsA("ParticleEmitter") then
+                obj:Destroy()
+            end
+        end
+    )
+end
+
+-- Fungsi untuk menghentikan deteksi otomatis
+function stopDetectingParticles()
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
 local gefsConnection, sgefConnection
 
 local gefToggle =
@@ -2039,7 +2091,7 @@ saveOriginalHitboxSizes()
 gefsHitboxToggle =
     Tab:CreateToggle(
     {
-        Name = "Enable hitbox Gefs",
+        Name = "hitbox Gefs",
         CurrentValue = false,
         Flag = "Toggle33",
         Callback = function(Value)
@@ -2096,7 +2148,7 @@ gefsHitboxToggle =
 sgefHitboxToggle =
     Tab:CreateToggle(
     {
-        Name = "Enable hitbox sgef",
+        Name = "hitbox sgef",
         CurrentValue = false,
         Flag = "Toggle34",
         Callback = function(Value)
@@ -2285,58 +2337,6 @@ Tab:CreateButton(
         end
     }
 )
-local toggleActive = false -- Status toggle
-
--- Toggle UI dari library yang Anda gunakan
-local Toggle =
-    Tab:CreateToggle(
-    {
-        Name = "Destroy All ParticleEmitter",
-        CurrentValue = false,
-        Flag = "Toggle_Particleemit",
-        Callback = function(Value)
-            toggleActive = Value -- Ubah status toggle
-            if toggleActive then
-                startDetectingParticles()
-            else
-                stopDetectingParticles()
-            end
-        end
-    }
-)
-
--- Fungsi untuk mendeteksi dan menghapus ParticleEmitter
-local function deleteParticles()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") then
-            obj:Destroy()
-        end
-    end
-end
-
-local connection  -- Menyimpan koneksi event
-
--- Fungsi untuk mulai deteksi otomatis
-function startDetectingParticles()
-    deleteParticles() -- Hapus partikel yang sudah ada
-
-    connection =
-        workspace.DescendantAdded:Connect(
-        function(obj)
-            if toggleActive and obj:IsA("ParticleEmitter") then
-                obj:Destroy()
-            end
-        end
-    )
-end
-
--- Fungsi untuk menghentikan deteksi otomatis
-function stopDetectingParticles()
-    if connection then
-        connection:Disconnect()
-        connection = nil
-    end
-end
 Tab:CreateButton(
     {
         Name = "Infinite Yield",
