@@ -884,67 +884,6 @@ local gefToggle =
         end
     }
 )
-local RunService = game:GetService("RunService")
-local speaker = game.Players.LocalPlayer
-local tpwalking = false
-local selectedSpeedMultiplier = 2
-local speedBoostConnection
-local Dropdown =
-    Tab:CreateDropdown(
-    {
-        Name = "Speed values",
-        Options = {"×1", "×2", "×3", "×4", "×5", "×6", "×7"},
-        CurrentOption = "×2", -- Default opsi
-        MultiSelection = false, -- Nonaktifkan multi-pilihan
-        Flag = "SpeedMultiplierDropdown", -- Flag unik untuk dropdown
-        Callback = function(Option)
-            -- Ambil angka dari string (misalnya "×3" menjadi 3)
-            local extractedNumber = tonumber(string.match(Option, "×(%d+)"))
-            if extractedNumber then
-                selectedSpeedMultiplier = extractedNumber
-            end
-            if tpwalking then
-                deactivateSpeedBoost() activateSpeedBoost(selectedSpeedMultiplier)
-            end
-        end
-    }
-)
-local Toggle =
-    Tab:CreateToggle(
-    {
-        Name = "Speed Boost",
-        CurrentValue = false,
-        Flag = "SpeedBoostToggle",
-        Callback = function(Value)
-            tpwalking = Value
-            if tpwalking then activateSpeedBoost(selectedSpeedMultiplier)
-            else
-                deactivateSpeedBoost()
-            end
-        end
-    }
-)
-function activateSpeedBoost(multiplier)
-    deactivateSpeedBoost()
-    speedBoostConnection =
- RunService.Heartbeat:Connect(
-        function(delta)
-            local chr = speaker.Character
-            local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-            if not chr or not hum then
-                warn("Character or Humanoid not found.")
-                return
-            end
-            if hum.MoveDirection.Magnitude > 0 then chr:TranslateBy(hum.MoveDirection * multiplier * delta * 10)
-            end
-        end
-    )
-end
-function deactivateSpeedBoost()
-    if speedBoostConnection then speedBoostConnection:Disconnect()
-        speedBoostConnection = nil
-    end
-end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
