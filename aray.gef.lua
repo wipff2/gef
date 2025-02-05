@@ -1450,6 +1450,59 @@ Tab:CreateToggle({
         end
     end,
 })
+local Section = Tab:CreateSection("Building")
+local esp = nil -- Simpan satu ESP saja
+
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP Shop",
+    CurrentValue = false,
+    Flag = "ToggleESP",
+    Callback = function(Value)
+        if Value then
+            -- Aktifkan ESP hanya untuk satu Shop
+            local buildings = workspace:FindFirstChild("Buildings")
+
+            if buildings then
+                for _, house in ipairs(buildings:GetChildren()) do
+                    local shop = house:FindFirstChild("Shop")
+                    if shop then
+                        local door = shop:FindFirstChild("Door")
+                        if door then
+                            local keyhole = door:FindFirstChild("Keyhole")
+                            if keyhole then
+                                -- Buat BillboardGui (ESP Text)
+                                esp = Instance.new("BillboardGui")
+                                esp.Size = UDim2.new(0, 100, 0, 50)
+                                esp.Adornee = keyhole
+                                esp.StudsOffset = Vector3.new(0, 2, 0)
+                                esp.AlwaysOnTop = true
+                                esp.Parent = keyhole
+
+                                -- Buat TextLabel
+                                local label = Instance.new("TextLabel")
+                                label.Size = UDim2.new(1, 0, 1, 0)
+                                label.BackgroundTransparency = 1
+                                label.Text = "Shop"
+                                label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                                label.TextScaled = true
+                                label.Font = Enum.Font.SourceSansBold
+                                label.Parent = esp
+
+                                return -- Hanya buat satu ESP, keluar dari loop
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            -- Hapus ESP jika toggle dimatikan
+            if esp then
+                esp:Destroy()
+                esp = nil
+            end
+        end
+    end,
+})
 local Tab = Window:CreateTab("Shop", "store")
 local Section = Tab:CreateSection("sell",true)
 local autoSellAll = false -- Status toggle untuk Auto Sell All
