@@ -1428,6 +1428,63 @@ local Toggle = Tab:CreateToggle({
         end
     end,
 })
+local ESPs = {} -- Menyimpan semua ESP yang dibuat
+
+local function createESP(target)
+    if target and not ESPs[target] then
+        -- Buat BillboardGui (ESP Text)
+        local esp = Instance.new("BillboardGui")
+        esp.Size = UDim2.new(0, 100, 0, 50)
+        esp.Adornee = target
+        esp.StudsOffset = Vector3.new(0, 5, 0) -- Posisi di atas target
+        esp.AlwaysOnTop = true
+        esp.Parent = target
+
+        -- Buat TextLabel
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = "Tower"
+        label.TextColor3 = Color3.fromRGB(255, 0, 0) -- Warna merah
+        label.TextScaled = true
+        label.Font = Enum.Font.SourceSansBold
+        label.Parent = esp
+
+        -- Simpan ESP agar bisa dihapus nanti
+        ESPs[target] = esp
+    end
+end
+
+local function removeAllESP()
+    for _, esp in pairs(ESPs) do
+        if esp then
+            esp:Destroy()
+        end
+    end
+    ESPs = {} -- Kosongkan daftar ESP
+end
+
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP Tower",
+    CurrentValue = false,
+    Flag = "ToggleESPTower",
+    Callback = function(Value)
+        if Value then
+            -- Aktifkan ESP untuk semua Tower
+            local buildings = workspace:FindFirstChild("Buildings")
+            if buildings then
+                for _, obj in ipairs(buildings:GetChildren()) do
+                    if obj.Name:find("Tower") then -- Cek jika nama mengandung "Tower"
+                        createESP(obj)
+                    end
+                end
+            end
+        else
+            -- Hapus semua ESP jika toggle dimatikan
+            removeAllESP()
+        end
+    end,
+})
 local Tab = Window:CreateTab("Shop", "store")
 local Section = Tab:CreateSection("sell",true)
 local autoSellAll = false -- Status toggle untuk Auto Sell All
