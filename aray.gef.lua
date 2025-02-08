@@ -588,10 +588,10 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Backpack = LocalPlayer:WaitForChild("Backpack")
 
-local ToggleState = false -- Default mati
-
+-- Toggle untuk Fast Eat Food
+local ToggleState = false
 local Toggle = Tab:CreateToggle({
-   Name = "fast Eat Food",
+   Name = "Fast Eat Food",
    CurrentValue = false,
    Flag = "AutoEatToggle",
    Callback = function(Value)
@@ -599,44 +599,50 @@ local Toggle = Tab:CreateToggle({
    end,
 })
 
+-- Toggle untuk Fast Heal Medkit
+local HealingEnabled = false
+local ToggleHeal = Tab:CreateToggle({
+   Name = "Fast Heal Medkit",
+   CurrentValue = false,
+   Flag = "HealingToggle",
+   Callback = function(Value)
+      HealingEnabled = Value
+   end,
+})
+
+-- Fungsi untuk makan otomatis
 local function checkTool()
     if not ToggleState then return end -- Hanya berjalan jika toggle aktif
 
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak makan jika darah penuh
+
     local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
-    if Tool and Character:FindFirstChildOfClass("Humanoid") then
+    if Tool then
         local Progress = Tool:FindFirstChild("Progress")
         local EatEvent = Tool:FindFirstChild("Eat")
 
         if Progress and EatEvent and Progress:IsA("NumberValue") then
-            Progress.Value = 1 -- Set progress bar ke 1
-            EatEvent:FireServer() -- Kirim event ke server
+            Progress.Value = 1 -- Set progress ke penuh
+            EatEvent:FireServer() -- Kirim event makan ke server
         end
     end
 end
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
-local HealingEnabled = false -- Default toggle is OFF
-
--- Fungsi untuk penyembuhan
+-- Fungsi untuk penyembuhan otomatis
 local function HealPlayer()
     if not HealingEnabled then return end -- Tidak melakukan apa-apa jika toggle OFF
 
-    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-    if not HumanoidRootPart then return end
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak heal jika darah penuh
 
-    -- Cek apakah pemain memegang Medkit
     local Tool = Character:FindFirstChild("Medkit")
     if Tool then
-        -- Progress bar langsung penuh
         local Progress = Tool:FindFirstChild("Progress")
         if Progress and Progress:IsA("NumberValue") then
             Progress.Value = 1
         end
 
-        -- Fire event penyembuhan
         local HealEvent = Tool:FindFirstChild("Heal")
         if HealEvent and HealEvent:IsA("RemoteEvent") then
             HealEvent:FireServer()
@@ -646,26 +652,9 @@ local function HealPlayer()
     end
 end
 
--- Loop untuk mengecek setiap frame apakah tool dipegang
-RunService.Heartbeat:Connect(HealPlayer)
-
--- Fungsi untuk mengubah status toggle
-local function ToggleHealing(Value)
-    HealingEnabled = Value
-    
-end
-
--- Membuat toggle pada tab UI dengan callback
-local Toggle = Tab:CreateToggle({
-   Name = "Fast heal Medkit", -- Nama toggle
-   CurrentValue = false, -- Default OFF
-   Flag = "HealingToggle", -- Flag untuk konfigurasi
-   Callback = function(Value)
-       ToggleHealing(Value) -- Memanggil fungsi untuk mengaktifkan/mematikan fungsi
-   end,
-})
--- Loop untuk mengecek setiap frame
+-- Loop untuk menjalankan fungsi setiap frame
 RunService.Heartbeat:Connect(checkTool)
+RunService.Heartbeat:Connect(HealPlayer)
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
