@@ -1631,12 +1631,14 @@ Tab:CreateButton({
     end,
 })
 local Section = Tab:CreateSection("buy",true) 
+local isScanning = false -- Status toggle
+
 local function autoBuyItem(item)
     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
     print("Buy Item", item.Name)
 end
 
-local function scanShopsAndCreateButtons()
+local function scanShops()
     for _, building in ipairs(workspace.Buildings:GetChildren()) do
         if building:IsA("Model") and building:FindFirstChild("Nodes") then
             local nodes = building:FindFirstChild("Nodes")
@@ -1667,7 +1669,20 @@ local function scanShopsAndCreateButtons()
     end
 end
 
-scanShopsAndCreateButtons()
+-- Membuat Toggle
+Tab:CreateToggle({
+    Name = "Auto Scan Shops",
+    Default = false,
+    Callback = function(state)
+        isScanning = state -- Mengatur status toggle
+        if isScanning then
+            print("Scanning Shops...")
+            scanShops()
+        else
+            print("Stopped Scanning.")
+        end
+    end,
+})
 local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Tools")
 local speaker = game.Players.LocalPlayer
