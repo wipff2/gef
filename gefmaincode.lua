@@ -673,10 +673,19 @@ Tab:CreateButton(
         end
     }
 )
-local Section = Tab:CreateSection("buy", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Fungsi untuk mencari semua item di toko dan otomatis membelinya
-local function autoBuyItem(itemName)
-    -- Mencari seluruh toko di Workspace.Buildings
+local Section = Tab:CreateSection("buy", true) local isScanning = false -- Status toggle
+local itemButtons = {} -- Menyimpan tombol yang sudah dibuat
+local connection -- Menyimpan event untuk pemantauan real-time
+
+local function autoBuyItem(item)
+    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
+    print("Buy Item", item.Name)
+end
+
+-- Fungsi untuk memperbarui daftar tombol berdasarkan item yang ada
+local function updateButtons()
+    local foundItems = {}
+
     for _, building in ipairs(workspace.Buildings:GetChildren()) do
         if building:IsA("Model") and building:FindFirstChild("Nodes") then
             local nodes = building:FindFirstChild("Nodes")
@@ -685,41 +694,79 @@ local function autoBuyItem(itemName)
             local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
             local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
 
-            -- Validasi keberadaan folder item
+            -- Jika ada folder item
             if itemFolder then
-                local item = itemFolder:FindFirstChild(itemName)
+                for _, item in ipairs(itemFolder:GetChildren()) do
+                    if item:IsA("ValueBase") then
+                        local itemName = item.Name
+                        local itemPrice = item.Value
+                        local buttonKey = itemName -- Kunci unik berdasarkan nama item
 
-                if item and item:IsA("ValueBase") then
-                    local price = item.Value
-
-                    -- Menjalankan FireServer untuk membeli item
-                    local args = {
-                        [1] = item
-                    }
-                    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
-                    print("BuyingItem", itemName)
-                    return
+                        -- Jika tombol belum dibuat, buat tombol baru
+                        if not itemButtons[buttonKey] then
+                            itemButtons[buttonKey] = Tab:CreateButton({
+                                Name = string.format("[%s]:[%s]", itemName, tostring(itemPrice)),
+                                Callback = function()
+                                    autoBuyItem(item)
+                                end,
+                            })
+                        end
+                        foundItems[buttonKey] = true
+                    end
                 end
             end
         end
     end
 
-    -- Jika tidak ditemukan
-    warn("Item", itemName, "not found in Shop.")
+    -- Hapus tombol yang tidak lagi memiliki item di toko
+    for key, button in pairs(itemButtons) do
+        if not foundItems[key] then
+            itemButtons[key] = nil -- Hapus referensi tombol
+        end
+    end
 end
 
--- Membuat tombol untuk membeli item secara otomatis
-local items = {"Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun", "Shells"}
-for _, item in ipairs(items) do
-    Tab:CreateButton(
-        {
-            Name = "Buy ?1 " .. item,
-            Callback = function()
-                autoBuyItem(item)
-            end
-        }
-    )
+-- Fungsi untuk memulai pemindaian real-time
+local function startScanning()
+    updateButtons() -- Perbarui tombol awal
+
+    -- Event untuk mendeteksi perubahan di workspace secara langsung
+    connection = workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateButtons()
+        end
+    end)
+
+    workspace.DescendantRemoving:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateButtons()
+        end
+    end)
 end
+
+-- Fungsi untuk menghentikan pemindaian
+local function stopScanning()
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
+
+-- Membuat Toggle
+Tab:CreateToggle({
+    Name = "On/off Shop",
+    Default = false,
+    Callback = function(state)
+        isScanning = state -- Mengatur status toggle
+        if isScanning then
+            print("Start")
+            startScanning()
+        else
+            print("Off.")
+            stopScanning()
+        end
+    end,
+})
 local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -773,8 +820,6 @@ Tab:CreateButton(
     }
 )
 local InfJumpEnabled = false
-local Noclipping = nil
-local Clip = true
 
 -- Toggle untuk Infinite Jump
 Tab:CreateToggle(
@@ -803,52 +848,6 @@ Tab:CreateToggle(
     }
 )
 
-local Noclipping = nil
-local Clip = true
-
--- Toggle untuk Noclip
-Tab:CreateToggle(
-    {
-        Name = "Noclip",
-        CurrentValue = false,
-        Flag = "NoclipToggle",
-        Callback = function(Value)
-            Clip = not Value -- Membalikkan status Clip
-            if Value then
-                -- Loop untuk menonaktifkan CanCollide pada semua BasePart
-                local function NoclipLoop()
-                    local speaker = game.Players.LocalPlayer
-                    local character = speaker.Character or speaker.CharacterAdded:Wait()
-                    for _, child in pairs(character:GetDescendants()) do
-                        if child:IsA("BasePart") and child.CanCollide == true then
-                            child.CanCollide = false
-                        end
-                    end
-                end
-
-                -- Memulai loop Noclip
-                Noclipping = game:GetService("RunService").Stepped:Connect(NoclipLoop)
-                if Noclipping then
-                    Noclipping:Disconnect()
-                    Noclipping = nil
-                end
-
-                -- Hanya mengatur `CanCollide` ke true untuk bagian tertentu
-                local speaker = game.Players.LocalPlayer
-                local character = speaker.Character or speaker.CharacterAdded:Wait()
-                for _, child in pairs(character:GetDescendants()) do
-                    if child:IsA("BasePart") then
-                        if child.Name == "HumanoidRootPart" or child.Name == "UpperTorso" or child.Name == "LowerTorso" then
-                            child.CanCollide = true
-                        else
-                            child.CanCollide = false
-                        end
-                    end
-                end
-            end
-        end
-    }
-)
 local gefsConnection, sgefConnection
 local gefToggle =
     Tab:CreateToggle(
@@ -889,60 +888,113 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+local Clip = true
+local Noclipping
+
+-- Fungsi untuk mengatur noclip
+local function ToggleNoclip(State)
+    Clip = not State -- Jika Noclip aktif, Clip jadi false
+
+    if State then
+        print("Noclip Enabled")
+
+        -- Loop Noclip
+        Noclipping = RunService.Stepped:Connect(function()
+            if not Clip then
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        print("Noclip Disabled")
+
+        -- Hentikan loop jika aktif
+        if Noclipping then
+            Noclipping:Disconnect()
+            Noclipping = nil
+        end
+
+        -- Mengembalikan CanCollide hanya untuk bagian utama karakter
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if part.Name == "HumanoidRootPart" or part.Name == "UpperTorso" or part.Name == "LowerTorso" then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+-- Toggle untuk Noclip
+Tab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        ToggleNoclip(Value)
+    end,
+})
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Backpack = LocalPlayer:WaitForChild("Backpack")
 
-local ToggleState = false -- Default mati
+-- Toggle untuk Fast Eat Food
+local ToggleState = false
+local Toggle = Tab:CreateToggle({
+   Name = "Fast Eat Food",
+   CurrentValue = false,
+   Flag = "AutoEatToggle",
+   Callback = function(Value)
+      ToggleState = Value
+   end,
+})
 
-local Toggle =
-    Tab:CreateToggle(
-    {
-        Name = "fast Eat Food",
-        CurrentValue = false,
-        Flag = "AutoEatToggle",
-        Callback = function(Value)
-            ToggleState = Value
-        end
-    }
-)
+-- Toggle untuk Fast Heal Medkit
+local HealingEnabled = false
+local ToggleHeal = Tab:CreateToggle({
+   Name = "Fast Heal Medkit",
+   CurrentValue = false,
+   Flag = "HealingToggle",
+   Callback = function(Value)
+      HealingEnabled = Value
+   end,
+})
 
+-- Fungsi untuk makan otomatis
 local function checkTool()
-    if not ToggleState then
-        return
-    end -- Hanya berjalan jika toggle aktif
+    if not ToggleState then return end -- Hanya berjalan jika toggle aktif
+
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak makan jika darah penuh
 
     local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
-    if Tool and Character:FindFirstChildOfClass("Humanoid") then
+    if Tool then
         local Progress = Tool:FindFirstChild("Progress")
         local EatEvent = Tool:FindFirstChild("Eat")
 
         if Progress and EatEvent and Progress:IsA("NumberValue") then
-            Progress.Value = 1 -- Set progress bar ke 1
-            EatEvent:FireServer() -- Kirim event ke server
+            Progress.Value = 1 -- Set progress ke penuh
+            EatEvent:FireServer() -- Kirim event makan ke server
         end
     end
 end
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
-local HealingEnabled = false -- Default toggle is OFF
-
--- Fungsi untuk penyembuhan
+-- Fungsi untuk penyembuhan otomatis
 local function HealPlayer()
-    if not HealingEnabled then
-        return
-    end -- Tidak melakukan apa-apa jika toggle OFF
+    if not HealingEnabled then return end -- Tidak melakukan apa-apa jika toggle OFF
 
-    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-    if not HumanoidRootPart then
-        return
-    end
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak heal jika darah penuh
 
-    -- Cek apakah pemain memegang Medkit
     local Tool = Character:FindFirstChild("Medkit")
     if Tool then
-        -- Progress bar langsung penuh
         local Progress = Tool:FindFirstChild("Progress")
         if Progress and Progress:IsA("NumberValue") then
             Progress.Value = 1
@@ -953,29 +1005,13 @@ local function HealPlayer()
             HealEvent:FireServer()
         end
 
-        print("Healing")
+        print("Healing activated automatically!")
     end
 end
 
--- Loop untuk mengecek setiap frame apakah tool dipegang
+-- Loop untuk menjalankan fungsi setiap frame
+RunService.Heartbeat:Connect(checkTool)
 RunService.Heartbeat:Connect(HealPlayer)
-
--- Fungsi untuk mengubah status toggle
-local function ToggleHealing(Value)
-    HealingEnabled = Value
-end
-
-local Toggle =
-    Tab:CreateToggle(
-    {
-        Name = "Fast heal Medkit",
-        CurrentValue = false,
-        Flag = "HealingToggle",
-        Callback = function(Value)
-            ToggleHealing(Value)
-        end
-    }
-)
 -- Loop untuk mengecek setiap frame
 RunService.Heartbeat:Connect(checkTool)
 local RunService = game:GetService("RunService")
@@ -2195,6 +2231,116 @@ Tab:CreateToggle(
         end
     }
 )
+local Section = Tab:CreateSection("Building")
+local esp = nil -- Simpan satu ESP saja
+
+local Toggle = Tab:CreateToggle({
+    Name = "ESP Shop",
+    CurrentValue = false,
+    Flag = "ToggleESP",
+    Callback = function(Value)
+        if Value then
+            -- Aktifkan ESP hanya untuk satu Shop
+            local buildings = workspace:FindFirstChild("Buildings")
+
+            if buildings then
+                for _, house in ipairs(buildings:GetChildren()) do
+                    local shop = house:FindFirstChild("Shop")
+                    if shop then
+                        local door = shop:FindFirstChild("Door")
+                        if door then
+                            local keyhole = door:FindFirstChild("Keyhole")
+                            if keyhole then
+                                -- Buat BillboardGui (ESP Text)
+                                esp = Instance.new("BillboardGui")
+                                esp.Size = UDim2.new(0, 100, 0, 50)
+                                esp.Adornee = keyhole
+                                esp.StudsOffset = Vector3.new(0, 2, 0)
+                                esp.AlwaysOnTop = true
+                                esp.Parent = keyhole
+
+                                -- Buat TextLabel
+                                local label = Instance.new("TextLabel")
+                                label.Size = UDim2.new(1, 0, 1, 0)
+                                label.BackgroundTransparency = 1
+                                label.Text = "Shop"
+                                label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                                label.TextScaled = true
+                                label.Font = Enum.Font.SourceSansBold
+                                label.Parent = esp
+
+                                return -- Hanya buat satu ESP, keluar dari loop
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            -- Hapus ESP jika toggle dimatikan
+            if esp then
+                esp:Destroy()
+                esp = nil
+            end
+        end
+    end,
+})
+local ESPs = {} -- Menyimpan semua ESP yang dibuat
+
+local function createESP(target)
+    if target and not ESPs[target] then
+        -- Buat BillboardGui (ESP Text)
+        local esp = Instance.new("BillboardGui")
+        esp.Size = UDim2.new(0, 100, 0, 50)
+        esp.Adornee = target
+        esp.StudsOffset = Vector3.new(0, 5, 0) -- Posisi di atas target
+        esp.AlwaysOnTop = true
+        esp.Parent = target
+
+        -- Buat TextLabel
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = "Tower"
+        label.TextColor3 = Color3.fromRGB(255, 0, 0) -- Warna merah
+        label.TextScaled = true
+        label.Font = Enum.Font.SourceSansBold
+        label.Parent = esp
+
+        -- Simpan ESP agar bisa dihapus nanti
+        ESPs[target] = esp
+    end
+end
+
+local function removeAllESP()
+    for _, esp in pairs(ESPs) do
+        if esp then
+            esp:Destroy()
+        end
+    end
+    ESPs = {} -- Kosongkan daftar ESP
+end
+
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP Tower",
+    CurrentValue = false,
+    Flag = "ToggleESPTower",
+    Callback = function(Value)
+        if Value then
+            -- Aktifkan ESP untuk semua Tower
+            local buildings = workspace:FindFirstChild("Buildings")
+            if buildings then
+                for _, obj in ipairs(buildings:GetChildren()) do
+                    if obj.Name:find("Tower") then -- Cek jika nama mengandung "Tower"
+                        createESP(obj)
+                    end
+                end
+            end
+        else
+            -- Hapus semua ESP jika toggle dimatikan
+            removeAllESP()
+        end
+    end,
+})
 local Tab = Window:CreateTab("Misc", "braces")
 local Section = Tab:CreateSection("server", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 local TeleportService = game:GetService("TeleportService")
