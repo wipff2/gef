@@ -1379,7 +1379,7 @@ local Section = Tab:CreateSection("Building")
 local esp = nil -- Simpan satu ESP saja
 
 local Toggle = Tab:CreateToggle({
-    Name = "Toggle ESP Shop",
+    Name = "ESP Shop",
     CurrentValue = false,
     Flag = "ToggleESP",
     Callback = function(Value)
@@ -1630,10 +1630,13 @@ Tab:CreateButton({
         print("Purchased Storage")
     end,
 })
-local Section = Tab:CreateSection("buy",true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Fungsi untuk mencari semua item di toko dan otomatis membelinya
-local function autoBuyItem(itemName)
-    -- Mencari seluruh toko di Workspace.Buildings
+local Section = Tab:CreateSection("buy",true) 
+local function autoBuyItem(item)
+    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
+    print("Buy Item", item.Name)
+end
+
+local function scanShopsAndCreateButtons()
     for _, building in ipairs(workspace.Buildings:GetChildren()) do
         if building:IsA("Model") and building:FindFirstChild("Nodes") then
             local nodes = building:FindFirstChild("Nodes")
@@ -1642,39 +1645,29 @@ local function autoBuyItem(itemName)
             local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
             local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
 
-            -- Validasi keberadaan folder item
+            -- Jika ada folder item
             if itemFolder then
-                local item = itemFolder:FindFirstChild(itemName)
+                for _, item in ipairs(itemFolder:GetChildren()) do
+                    if item:IsA("ValueBase") then
+                        local itemName = item.Name
+                        local itemPrice = item.Value
+                        local itemPath = "Nodes.Room.Shop.ProximityPrompt.Folder." .. itemName
 
-                if item and item:IsA("ValueBase") then
-                    local price = item.Value
-
-                    -- Menjalankan FireServer untuk membeli item
-                    local args = {
-                        [1] = item
-                    }
-                    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(unpack(args))
-                    print("BuyItem event fired for", itemName)
-                    return
+                        -- Membuat tombol dengan nama yang sesuai
+                        Tab:CreateButton({
+                            Name = string.format("[%s]:[%s] path:%s", itemName, tostring(itemPrice), itemPath),
+                            Callback = function()
+                                autoBuyItem(item)
+                            end,
+                        })
+                    end
                 end
             end
         end
     end
-
-    -- Jika tidak ditemukan
-    warn("Item", itemName, "not found in any Shop.")
 end
 
--- Membuat tombol untuk membeli item secara otomatis
-local items = {"Hammer", "Handgun", "Medkit", "Bullets", "Bat", "Shotgun", "Shells"}
-for _, item in ipairs(items) do
-    Tab:CreateButton({
-        Name = "Buy ?1 " .. item,
-        Callback = function()
-            autoBuyItem(item)
-        end,
-    })
-end
+scanShopsAndCreateButtons()
 local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Tools")
 local speaker = game.Players.LocalPlayer
