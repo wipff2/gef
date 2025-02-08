@@ -1712,15 +1712,15 @@ end
 
 -- Membuat Toggle
 Tab:CreateToggle({
-    Name = "Auto Scan Shops",
+    Name = "On/off Shop",
     Default = false,
     Callback = function(state)
         isScanning = state -- Mengatur status toggle
         if isScanning then
-            print("Scanning Shops...")
+            print("Start")
             startScanning()
         else
-            print("Stopped Scanning.")
+            print("Off.")
             stopScanning()
         end
     end,
