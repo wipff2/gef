@@ -2105,23 +2105,9 @@ Tab:CreateButton({
     end,
 })
 local toggleActive = false -- Status toggle
+local connection -- Menyimpan koneksi event
 
--- Toggle UI dari library yang Anda gunakan
-local Toggle = Tab:CreateToggle({
-    Name = Destroy All ParticleEmitter",
-    CurrentValue = false,
-    Flag = "Toggle_Particleemit",
-    Callback = function(Value)
-        toggleActive = Value -- Ubah status toggle
-        if toggleActive then
-            startDetectingParticles()
-        else
-            stopDetectingParticles()
-        end
-    end,
-})
-
--- Fungsi untuk mendeteksi dan menghapus ParticleEmitter
+-- Fungsi untuk menghapus semua ParticleEmitter yang ada
 local function deleteParticles()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ParticleEmitter") then
@@ -2130,10 +2116,8 @@ local function deleteParticles()
     end
 end
 
-local connection -- Menyimpan koneksi event
-
 -- Fungsi untuk mulai deteksi otomatis
-function startDetectingParticles()
+local function startDetectingParticles()
     deleteParticles() -- Hapus partikel yang sudah ada
 
     connection = workspace.DescendantAdded:Connect(function(obj)
@@ -2144,12 +2128,27 @@ function startDetectingParticles()
 end
 
 -- Fungsi untuk menghentikan deteksi otomatis
-function stopDetectingParticles()
+local function stopDetectingParticles()
     if connection then
         connection:Disconnect()
         connection = nil
     end
 end
+
+-- Membuat Toggle UI
+local Toggle = Tab:CreateToggle({
+    Name = "Destroy All ParticleEmitter",
+    CurrentValue = false,
+    Flag = "Toggle_Particleemit", -- Identifier unik
+    Callback = function(Value)
+        toggleActive = Value -- Perbarui status toggle
+        if toggleActive then
+            startDetectingParticles()
+        else
+            stopDetectingParticles()
+        end
+    end,
+})
 Tab:CreateButton({
     Name = "Infinite Yield",
     Interact = "Click run another script",
