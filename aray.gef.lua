@@ -2281,7 +2281,7 @@ local Button = Tab:CreateButton({
             end
         else
             ArrayField:Notify({
-                Title = "Get Error",
+                Title = "Error",
                 Content = "Did you know you need to use the Hammer tool for this?",
                 Duration = 10,
                 Image = 4483362458,
@@ -2303,4 +2303,6 @@ local Button = Tab:CreateButton({
    -- auto build house2
 print("coming soon house2")
    end,
-})Rayfield:LoadConfiguration()
+})
+
+Rayfield:LoadConfiguration()
