@@ -1632,13 +1632,18 @@ Tab:CreateButton({
 })
 local Section = Tab:CreateSection("buy",true) 
 local isScanning = false -- Status toggle
+local itemButtons = {} -- Menyimpan tombol yang sudah dibuat
+local connection -- Menyimpan event untuk pemantauan real-time
 
 local function autoBuyItem(item)
     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
     print("Buy Item", item.Name)
 end
 
-local function scanShops()
+-- Fungsi untuk memperbarui daftar tombol berdasarkan item yang ada
+local function updateButtons()
+    local foundItems = {}
+
     for _, building in ipairs(workspace.Buildings:GetChildren()) do
         if building:IsA("Model") and building:FindFirstChild("Nodes") then
             local nodes = building:FindFirstChild("Nodes")
@@ -1653,19 +1658,55 @@ local function scanShops()
                     if item:IsA("ValueBase") then
                         local itemName = item.Name
                         local itemPrice = item.Value
-                        local itemPath = "Nodes.Room.Shop.ProximityPrompt.Folder." .. itemName
+                        local buttonKey = itemName -- Kunci unik berdasarkan nama item
 
-                        -- Membuat tombol dengan nama yang sesuai
-                        Tab:CreateButton({
-                            Name = string.format("[%s]:[%s] path:%s", itemName, tostring(itemPrice), itemPath),
-                            Callback = function()
-                                autoBuyItem(item)
-                            end,
-                        })
+                        -- Jika tombol belum dibuat, buat tombol baru
+                        if not itemButtons[buttonKey] then
+                            itemButtons[buttonKey] = Tab:CreateButton({
+                                Name = string.format("[%s]:[%s]", itemName, tostring(itemPrice)),
+                                Callback = function()
+                                    autoBuyItem(item)
+                                end,
+                            })
+                        end
+                        foundItems[buttonKey] = true
                     end
                 end
             end
         end
+    end
+
+    -- Hapus tombol yang tidak lagi memiliki item di toko
+    for key, button in pairs(itemButtons) do
+        if not foundItems[key] then
+            itemButtons[key] = nil -- Hapus referensi tombol
+        end
+    end
+end
+
+-- Fungsi untuk memulai pemindaian real-time
+local function startScanning()
+    updateButtons() -- Perbarui tombol awal
+
+    -- Event untuk mendeteksi perubahan di workspace secara langsung
+    connection = workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateButtons()
+        end
+    end)
+
+    workspace.DescendantRemoving:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateButtons()
+        end
+    end)
+end
+
+-- Fungsi untuk menghentikan pemindaian
+local function stopScanning()
+    if connection then
+        connection:Disconnect()
+        connection = nil
     end
 end
 
@@ -1677,9 +1718,10 @@ Tab:CreateToggle({
         isScanning = state -- Mengatur status toggle
         if isScanning then
             print("Scanning Shops...")
-            scanShops()
+            startScanning()
         else
             print("Stopped Scanning.")
+            stopScanning()
         end
     end,
 })
