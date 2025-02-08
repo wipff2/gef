@@ -2305,4 +2305,4 @@ print("coming soon house2")
    end,
 })
 
-ArrayField:LoadConfiguration() --di bagian bawah semua kode
+ArrayField:LoadConfiguration() --di bagian Rayfield:LoadConfiguration()
