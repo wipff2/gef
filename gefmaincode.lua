@@ -117,7 +117,7 @@ local function dropHeldItem()
     -- Cek tool di tangan pemain
     local heldTool = character:FindFirstChildOfClass("Tool")
     if not heldTool then
-        print("No tool found.")
+        print("Not found.")
         return
     end
 
@@ -128,9 +128,9 @@ local function dropHeldItem()
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
     if dropItemEvent then
         dropItemEvent:FireServer(heldTool)
-        print("Dropped:", heldTool.Name)
+        print("Drop:", heldTool.Name)
     else
-        warn("error no found")
+        warn("not found")
     end
 end
 
@@ -256,7 +256,7 @@ local function findNearestItemOutsideExcludeDistance(itemName)
     -- Validasi folder Pickups
     local pickupsFolder = workspace:FindFirstChild("Pickups")
     if not pickupsFolder then
-        warn("Pickups folder non found.")
+        warn("not found.")
         return nil
     end
 
@@ -309,7 +309,7 @@ for _, item in ipairs(items) do
                 -- Menyimpan posisi dan rotasi awal jika toggle aktif
                 if returnToOriginal then
                     originalPosition = humanoidRootPart.CFrame
-                    print("Original position saved.")
+                    print("po save.")
                 end
 
                 -- Teleportasi ke item terdekat
@@ -342,12 +342,11 @@ for _, item in ipairs(items) do
                 if returnToOriginal and originalPosition then
                     task.wait(1) -- Tunggu 1 detik sebelum kembali
                     humanoidRootPart.CFrame = originalPosition -- Kembalikan ke posisi awal
-                    print("Return to pos")
+                    print("Back")
 
                     -- Atur rotasi ke default (primary)
                     task.wait(0.5) -- Tunggu 0.5 detik sebelum mengatur rotasi
                     humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-                    print("Rotation set default.")
                 end
 
                 -- Drop item yang dipegang jika auto-drop aktif
@@ -496,9 +495,9 @@ Tab:CreateButton(
                     savedPosition.Position.Z
                 )
                 Label:Set("Saved Position: " .. positionText)
-                print("Saved Position:", savedPosition)
+                print("Save:", savedPosition)
             else
-                warn("HumanoidRootPart not found.")
+                warn("Error.")
             end
         end
     }
@@ -519,7 +518,7 @@ local function sellAllItems()
     for _, item in ipairs(backpack:GetChildren()) do
         if item:IsA("Tool") then
             game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
-            print("Sold item:", item.Name)
+            print("Sell item:", item.Name)
         end
     end
 end
@@ -579,7 +578,7 @@ local function sellItemByName(itemName)
     for _, item in ipairs(backpack:GetChildren()) do
         if item.Name == itemName then
             game:GetService("ReplicatedStorage").Events.SellItem:FireServer(item)
-            print("Sold item:", item.Name)
+            print("Sell item:", item.Name)
             break -- Hentikan loop setelah item ditemukan dan dijual
         end
     end
@@ -599,7 +598,7 @@ Tab:CreateDropdown(
             else
                 selectedItems = selected -- Jika multi-seleksi, gunakan tabel langsung
             end
-            print("Selected items to sell:", selectedItems)
+            print("Select:", selectedItems)
         end
     }
 )
@@ -613,7 +612,7 @@ Tab:CreateToggle(
         Flag = "SellSpecificSelectedToggle",
         Callback = function(value)
             sellSpecificSelected = value
-            print("Sell Specific Selected Items:", sellSpecificSelected)
+            print("Succes Sell:", sellSpecificSelected)
 
             if sellSpecificSelected then
                 -- Menjual semua item yang dipilih saat toggle diaktifkan
@@ -641,7 +640,7 @@ Tab:CreateButton(
                 [1] = "MaxStamina"
             }
             game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Max Stamina")
+            print("Buying MaxStamina")
         end
     }
 )
@@ -655,7 +654,7 @@ Tab:CreateButton(
                 [1] = "StaminaRegen"
             }
             game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Stamina Regen")
+            print("Buying StaminaRegen")
         end
     }
 )
@@ -669,7 +668,7 @@ Tab:CreateButton(
                 [1] = "Storage"
             }
             game:GetService("ReplicatedStorage").Events.PurchaseEvent:FireServer(unpack(args))
-            print("Purchased Storage")
+            print("Buying Storage")
         end
     }
 )
@@ -679,7 +678,7 @@ local connection -- Menyimpan event untuk pemantauan real-time
 
 local function autoBuyItem(item)
     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
-    print("Buy Item", item.Name)
+    print("Buy ", item.Name)
 end
 
 -- Fungsi untuk memperbarui daftar tombol berdasarkan item yang ada
@@ -759,10 +758,10 @@ Tab:CreateToggle({
     Callback = function(state)
         isScanning = state -- Mengatur status toggle
         if isScanning then
-            print("Start")
+            
             startScanning()
         else
-            print("Off.")
+            
             stopScanning()
         end
     end,
@@ -812,9 +811,9 @@ Tab:CreateButton(
             if randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local targetPosition = randomPlayer.Character.HumanoidRootPart.Position
                 localPlayer.Character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
-                print("Teleported to:", randomPlayer.Name)
+                
             else
-                warn("Failed Target player valid position.")
+                warn("Failed Error.")
             end
         end
     }
@@ -897,7 +896,7 @@ local function ToggleNoclip(State)
     Clip = not State -- Jika Noclip aktif, Clip jadi false
 
     if State then
-        print("Noclip Enabled")
+        print("Noclip On")
 
         -- Loop Noclip
         Noclipping = RunService.Stepped:Connect(function()
@@ -910,7 +909,7 @@ local function ToggleNoclip(State)
             end
         end)
     else
-        print("Noclip Disabled")
+        print("Noclip Off")
 
         -- Hentikan loop jika aktif
         if Noclipping then
@@ -1005,7 +1004,7 @@ local function HealPlayer()
             HealEvent:FireServer()
         end
 
-        print("Healing activated automatically!")
+        
     end
 end
 
@@ -1058,7 +1057,7 @@ local function attachLightToHead()
     if head and lightInstance then
         lightInstance.Parent = head
     else
-        warn("Character or Head not found. Unable to attach light.")
+        warn("Character not found..")
     end
 end
 
@@ -2050,7 +2049,7 @@ local function updateModelESP(modelName, category, isEnabled)
 
     local gefs = workspace:FindFirstChild("GEFs")
     if not gefs then
-        warn("workspace.GEFs not found")
+        warn("not found")
         return
     end
 
@@ -2092,7 +2091,7 @@ Tab:CreateToggle(
         Callback = function(value)
             espMiniGEFEnabled = value
             if value then
-                print("ESP Mini GEF enabled")
+                
             end
         end
     }
@@ -2107,7 +2106,7 @@ Tab:CreateToggle(
         Callback = function(value)
             espTinyGEFEnabled = value
             if value then
-                print("ESP Tiny GEF enabled")
+                
             end
         end
     }
@@ -2388,7 +2387,7 @@ local function createLogFile(errorMessage)
 
     -- Simpan file
     writefile(fullPath, fileContent)
-    print("Log file created at:", fullPath)
+    print("Log file at:", fullPath)
 end
 
 -- Buat tombol
@@ -2421,7 +2420,7 @@ Tab:CreateButton(
                 warn(errorMessage)
                 createLogFile(errorMessage)
             else
-                print("Teleport to server")
+                print("Teleport")
                 createLogFile() -- Buat log tanpa error
             end
         end
@@ -2442,7 +2441,7 @@ Tab:CreateButton(
 
             -- Tangani jika terjadi error
             if not success then
-                warn("Failed to execute Infinite Yield:", err)
+                warn("Failed to execute Infinite Yield")
             end
         end
     }
@@ -2503,7 +2502,7 @@ Tab:CreateButton(
                 for _, child in ipairs(treesNo:GetChildren()) do
                     child:Destroy()
                 end
-                print("Trees clear.")
+                print("Trees Clear.")
             end
         end
     }
@@ -2528,7 +2527,7 @@ local Button =
                 )
 
                 if not success then
-                    warn("Failed to load script.")
+                    warn("Failed to load.")
                 end
             else
                 ArrayField:Notify(
@@ -2541,7 +2540,7 @@ local Button =
                             Ignore = {
                                 Name = "Okay!",
                                 Callback = function()
-                                    print("tool need hmmer")
+                                    print("Need Hammer")
                                 end
                             }
                         }
