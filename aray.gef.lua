@@ -1411,6 +1411,57 @@ local MaxStaminaInput =
         end
     }
 )
+local RunService = game:GetService("RunService")
+local GEFs = workspace:FindFirstChild("GEFs")
+
+if not GEFs then
+    warn("Found Nothing!")
+    return
+end
+
+-- Variabel untuk toggle status
+local isRunning = false
+local heartbeatConnection -- Variabel untuk menyimpan koneksi Heartbeat
+
+-- Fungsi untuk mengecek dan menghapus GoTo
+local function checkAndRemoveGoTo()
+    if not isRunning then return end -- Jika toggle tidak aktif, hentikan proses
+    
+    for _, gef in ipairs(GEFs:GetChildren()) do
+        if gef:IsA("Model") and (gef.Name:find("Mini GEF") or gef.Name:find("Tiny GEF")) then
+            local goTo = gef:FindFirstChild("GoTo")
+            if goTo then
+                goTo:Destroy()
+                print("Sucess")
+            end
+        end
+    end
+end
+
+-- Fungsi untuk mengontrol toggle
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Ghost",
+   CurrentValue = false,
+   Flag = "AutoRemoveGoTo",
+   Callback = function(Value)
+       isRunning = Value -- Mengubah status toggle
+       
+       if isRunning then
+           -- Mulai deteksi dengan Heartbeat jika belum berjalan
+           if not heartbeatConnection then
+               heartbeatConnection = RunService.Heartbeat:Connect(checkAndRemoveGoTo)
+               
+           end
+       else
+           -- Hentikan deteksi dengan memutus koneksi
+           if heartbeatConnection then
+               heartbeatConnection:Disconnect()
+               heartbeatConnection = nil
+               
+           end
+       end
+   end,
+})
 local gefsHitboxToggle, sgefHitboxToggle
 local gefsHitboxSlider, sgefHitboxSlider
 
