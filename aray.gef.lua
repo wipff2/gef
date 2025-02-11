@@ -1439,7 +1439,6 @@ local function checkAndRemoveGoTo()
             local goTo = gef:FindFirstChild("GoTo")
             if goTo then
                 goTo:Destroy()
-                print("Sucess")
             end
         end
     end
