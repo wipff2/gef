@@ -1449,7 +1449,7 @@ end
 local Toggle = Tab:CreateToggle({
    Name = "Auto Ghost",
    CurrentValue = false,
-   Flag = "AutoRemoveGoTo",
+   Flag = "AutoRemove",
    Callback = function(Value)
        isRunning = Value -- Mengubah status toggle
        
