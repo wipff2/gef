@@ -1,0 +1,100 @@
+local Icons = useStudio and require(script.Parent.icons) or loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/refs/heads/main/icons.lua'))()
+
+local function getIcon(name : string)
+	name = string.match(string.lower(name), "^%s*(.*)%s*$") :: string
+	local sizedicons = Icons['48px']
+
+	local r = sizedicons[name]
+	if not r then
+		error(`Lucide Icons: Failed to find icon by the name of "{name}"`, 2)
+	end
+
+	local rirs = r[2]
+	local riro = r[3]
+
+	if type(r[1]) ~= "number" or type(rirs) ~= "table" or type(riro) ~= "table" then
+		error("Lucide Icons: Internal error: Invalid auto-generated asset entry")
+	end
+
+	local irs = Vector2.new(rirs[1], rirs[2])
+	local iro = Vector2.new(riro[1], riro[2])
+
+	local asset = {
+		id = r[1],
+		imageRectSize = irs,
+		imageRectOffset = iro,
+	}
+
+	return asset
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local SearchBox = Instance.new("TextBox")
+local SearchBoxCorner = Instance.new("UICorner")
+local LoadButton = Instance.new("TextButton")
+local LoadButtonCorner = Instance.new("UICorner")
+local CloseButton = Instance.new("TextButton")
+local UIStroke = Instance.new("UIStroke")
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 400, 0, 200)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.ClipsDescendants = true
+
+UIStroke.Parent = Frame
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(50, 255, 50)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+SearchBox.Parent = Frame
+SearchBox.Size = UDim2.new(0.8, 0, 0, 30)
+SearchBox.Position = UDim2.new(0.1, 0, 0.1, 0)
+SearchBox.PlaceholderText = "Cari Script..."
+SearchBox.Text = ""
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SearchBox.BorderSizePixel = 0
+
+SearchBoxCorner.Parent = SearchBox
+SearchBoxCorner.CornerRadius = UDim.new(0, 6)
+
+LoadButton.Parent = Frame
+LoadButton.Size = UDim2.new(0.2, 0, 0, 40)
+LoadButton.Position = UDim2.new(0.80, 0, 0.75, 0)
+LoadButton.Text = "Load Script"
+LoadButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+LoadButton.BorderSizePixel = 0
+
+LoadButtonCorner.Parent = LoadButton
+LoadButtonCorner.CornerRadius = UDim.new(0, 6)
+
+LoadButton.MouseEnter:Connect(function()
+    LoadButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+end)
+
+LoadButton.MouseLeave:Connect(function()
+    LoadButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+end)
+
+LoadButton.MouseButton1Click:Connect(function()
+    print("Loading script: " .. SearchBox.Text)
+    -- Tambahkan fungsi untuk mencari dan menjalankan script
+end)
+
+CloseButton.Parent = Frame
+CloseButton.Size = UDim2.new(0.07, 0, 0, 25)
+CloseButton.Position = UDim2.new(0.91, 0, 0.02, 5)
+CloseButton.Text = "x"
+CloseButton.TextColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+CloseButton.BorderSizePixel = 0
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
