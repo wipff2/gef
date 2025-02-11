@@ -885,44 +885,50 @@ local gefToggle =
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local speaker = Players.LocalPlayer
+local Character = speaker.Character or speaker.CharacterAdded:Wait()
 
-local Clip = true
-local Noclipping
+local Clip = false
+local Noclipping = nil
+local floatName = "HumanoidRootPart" -- Bagian yang tetap tidak bertabrakan
 
--- Fungsi untuk mengatur noclip
+-- Fungsi untuk mengaktifkan Noclip
+local function NoclipLoop()
+    if not Clip and Character then
+        for _, child in pairs(Character:GetDescendants()) do
+            if child:IsA("BasePart") and child.CanCollide == true and child.Name ~= floatName then
+                child.CanCollide = false
+            end
+        end
+    end
+end
+
+-- Fungsi untuk mengaktifkan atau menonaktifkan Noclip
 local function ToggleNoclip(State)
-    Clip = not State -- Jika Noclip aktif, Clip jadi false
+    Clip = not State -- Jika Noclip aktif, Clip menjadi false
 
     if State then
-        print("Noclip On")
-
-        -- Loop Noclip
-        Noclipping = RunService.Stepped:Connect(function()
-            if not Clip then
-                for _, part in pairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-    else
-        print("Noclip Off")
-
-        -- Hentikan loop jika aktif
-        if Noclipping then
-            Noclipping:Disconnect()
-            Noclipping = nil
+        if not Noclipping then
+            Noclipping = RunService.Stepped:Connect(NoclipLoop)
         end
+    else
+        Unnoclip()
+    end
+end
 
-        -- Mengembalikan CanCollide hanya untuk bagian utama karakter
+-- Fungsi untuk menonaktifkan Noclip (Unnoclip)
+local function Unnoclip()
+    if Noclipping then
+        Noclipping:Disconnect()
+        Noclipping = nil
+    end
+    Clip = true
+
+    -- Mengembalikan CanCollide ke kondisi normal
+    if Character then
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                if part.Name == "HumanoidRootPart" or part.Name == "UpperTorso" or part.Name == "LowerTorso" then
-                    part.CanCollide = true
-                end
+                part.CanCollide = true
             end
         end
     end
@@ -937,6 +943,7 @@ Tab:CreateToggle({
         ToggleNoclip(Value)
     end,
 })
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
