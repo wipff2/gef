@@ -2640,6 +2640,7 @@ local Button =
             -- auto build house2
             print("coming soon house2")
         end
+}
  local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
