@@ -318,7 +318,7 @@ local function teleportToItem(item)
             print("Back")
 
             task.wait(0.5)
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
+            
         end
 
         if autoDropHeldItem then
