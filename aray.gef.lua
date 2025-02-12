@@ -68,7 +68,6 @@ local returnToOriginal = false
 local autoTriggerPrompt = false
 local autoDropHeldItem = false
 local originalPosition = nil
-local defaultRotation = nil
 local excludeDistance = 20
 local isPreviewActive = false
 local isTeleporting = false
