@@ -44,7 +44,7 @@ local Label =
     false
 )
 -- Membuat Section untuk metode teleport
-local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
+local Section = Tab:CreateSection("TP Method", true)
 
 -- Daftar nama tools
 local items = {
@@ -63,69 +63,60 @@ local items = {
     "GPS"
 }
 
--- Variabel untuk menyimpan posisi awal, rotasi awal, dan status ProximityPrompt
-local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
-local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
-local autoDropHeldItem = false -- Status toggle untuk auto-drop item yang dipegang
-local originalPosition = nil -- Posisi awal pemain (CFrame)
-local defaultRotation = nil -- Rotasi default karakter
-local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
-local previewBeams = {} -- Tabel untuk menyimpan beam visualisasi
-local isPreviewActive = false -- Status apakah preview aktif
+-- Variabel global
+local returnToOriginal = false
+local autoTriggerPrompt = false
+local autoDropHeldItem = false
+local originalPosition = nil
+local defaultRotation = nil
+local excludeDistance = 20
+local isPreviewActive = false
+local isTeleporting = false -- Status apakah sedang dalam proses teleportasi
+local teleportQueue = {} -- Antrian teleportasi
 
--- Membuat Toggle untuk kembali ke posisi awal
-Tab:CreateToggle(
-    {
-        Name = "Auto Return to Position",
-        CurrentValue = false,
-        Flag = "ReturnToggle",
-        Callback = function(Value)
-            returnToOriginal = Value
-        end
-    }
-)
+-- Toggle untuk kembali ke posisi awal
+Tab:CreateToggle({
+    Name = "Auto Return to Position",
+    CurrentValue = false,
+    Flag = "ReturnToggle",
+    Callback = function(Value)
+        returnToOriginal = Value
+    end
+})
 
--- Membuat Toggle untuk auto-trigger ProximityPrompt
-Tab:CreateToggle(
-    {
-        Name = "Auto pick items",
-        CurrentValue = false,
-        Flag = "AutoTriggerPromptToggle",
-        Callback = function(Value)
-            autoTriggerPrompt = Value
-        end
-    }
-)
+-- Toggle untuk auto-trigger ProximityPrompt
+Tab:CreateToggle({
+    Name = "Auto pick items",
+    CurrentValue = false,
+    Flag = "AutoTriggerPromptToggle",
+    Callback = function(Value)
+        autoTriggerPrompt = Value
+    end
+})
 
--- Membuat Toggle untuk auto-drop item yang dipegang
-Tab:CreateToggle(
-    {
-        Name = "Auto Drop Items",
-        CurrentValue = false,
-        Flag = "AutoDropHeldItemToggle",
-        Callback = function(Value)
-            autoDropHeldItem = Value
-        end
-    }
-)
-local Section = Tab:CreateSection("Teleport", true)
--- Fungsi untuk drop item yang sedang dipegang dengan delay
+-- Toggle untuk auto-drop item yang dipegang
+Tab:CreateToggle({
+    Name = "Auto Drop Items",
+    CurrentValue = false,
+    Flag = "AutoDropHeldItemToggle",
+    Callback = function(Value)
+        autoDropHeldItem = Value
+    end
+})
+
 local function dropHeldItem()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
-
-    -- Cek tool di tangan pemain
     local heldTool = character:FindFirstChildOfClass("Tool")
+
     if not heldTool then
         print("Not found.")
         return
     end
 
-    -- Delay sebelum drop item
-    task.wait(0.5) -- Ubah nilai ini untuk mengatur durasi delay
-
-    -- Memanggil event DropItem dari ReplicatedStorage.Events
+    task.wait(0.5) -- Delay sebelum drop item
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
+    
     if dropItemEvent then
         dropItemEvent:FireServer(heldTool)
         print("Drop:", heldTool.Name)
@@ -134,7 +125,6 @@ local function dropHeldItem()
     end
 end
 
--- Fungsi untuk membuat preview lingkaran beam
 local function createPreviewCircle()
     if #previewBeams > 0 then
         return
@@ -242,7 +232,6 @@ Tab:CreateSlider(
     }
 )
 
--- Fungsi untuk mencari item terdekat di luar excludeDistance
 local function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -253,14 +242,12 @@ local function findNearestItemOutsideExcludeDistance(itemName)
         return nil
     end
 
-    -- Validasi folder Pickups
     local pickupsFolder = workspace:FindFirstChild("Pickups")
     if not pickupsFolder then
         warn("not found.")
         return nil
     end
 
-    -- Cari item terdekat di luar excludeDistance
     local nearestItem = nil
     local nearestDistance = math.huge
 
@@ -277,85 +264,88 @@ local function findNearestItemOutsideExcludeDistance(itemName)
     return nearestItem
 end
 
--- Membuat tombol untuk setiap item
-for _, item in ipairs(items) do
-    Tab:CreateButton(
-        {
-            Name = item .. " Teleport",
-            Callback = function()
-                -- Cari item terdekat di luar excludeDistance
-                local nearestItem = findNearestItemOutsideExcludeDistance(item)
+-- Fungsi teleportasi dengan antrian
+local function teleportToItem(item)
+    table.insert(teleportQueue, function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-                if not nearestItem then
-                    warn("No " .. item .. " found.")
-                    return
-                end
+        if not humanoidRootPart then
+            warn("HumanoidRootPart not found.")
+            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            return
+        end
 
-                local player = game.Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        local nearestItem = findNearestItemOutsideExcludeDistance(item)
+        if not nearestItem then
+            warn("No " .. item .. " found.")
+            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            return
+        end
 
-                -- Validasi keberadaan HumanoidRootPart
-                if not humanoidRootPart then
-                    warn("HumanoidRootPart not found.")
-                    return
-                end
+        if returnToOriginal and not isTeleporting then
+            originalPosition = humanoidRootPart.CFrame
+            isTeleporting = true
+            print("Position saved.")
+        end
 
-                -- Simpan rotasi default jika belum disimpan
-                if not defaultRotation then
-                    defaultRotation = humanoidRootPart.CFrame - humanoidRootPart.Position
-                end
+        humanoidRootPart.CFrame = nearestItem.CFrame
+        print("Teleport")
 
-                -- Menyimpan posisi dan rotasi awal jika toggle aktif
-                if returnToOriginal then
-                    originalPosition = humanoidRootPart.CFrame
-                    print("po save.")
-                end
+        task.wait(0.2)
 
-                -- Teleportasi ke item terdekat
-                humanoidRootPart.CFrame = nearestItem.CFrame
-                print("Teleport")
-
-                -- Tunggu 0.2 detik agar karakter sampai ke item
-                task.wait(0.2)
-
-                -- Hanya jalankan fireProximityPrompt jika autoTriggerPrompt aktif
-                if autoTriggerPrompt then
-                    local promptsTriggered = 0
-                    for _, descendant in ipairs(workspace:GetDescendants()) do
-                        if descendant:IsA("ProximityPrompt") then
-                            local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                            if promptDistance <= descendant.MaxActivationDistance then
-                                fireproximityprompt(descendant, 0)
-                                task.wait(0.1)
-                                fireproximityprompt(descendant, 1)
-                                promptsTriggered = promptsTriggered + 1
-                            end
-                        end
+        if autoTriggerPrompt then
+            local promptsTriggered = 0
+            for _, descendant in ipairs(workspace:GetDescendants()) do
+                if descendant:IsA("ProximityPrompt") then
+                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                    if promptDistance <= descendant.MaxActivationDistance then
+                        fireproximityprompt(descendant, 0)
+                        task.wait(0.1)
+                        fireproximityprompt(descendant, 1)
+                        promptsTriggered = promptsTriggered + 1
                     end
-
-                    if promptsTriggered == 0 then
-                    end
-                end
-
-                -- Kembalikan karakter ke posisi awal jika toggle aktif
-                if returnToOriginal and originalPosition then
-                    task.wait(1) -- Tunggu 1 detik sebelum kembali
-                    humanoidRootPart.CFrame = originalPosition -- Kembalikan ke posisi awal
-                    print("Back")
-
-                    -- Atur rotasi ke default (primary)
-                    task.wait(0.5) -- Tunggu 0.5 detik sebelum mengatur rotasi
-                    humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-                end
-
-                -- Drop item yang dipegang jika auto-drop aktif
-                if autoDropHeldItem then
-                    dropHeldItem()
                 end
             end
-        }
-    )
+        end
+
+        if returnToOriginal and originalPosition then
+            task.wait(1)
+            humanoidRootPart.CFrame = originalPosition
+            print("Back")
+
+            task.wait(0.5)
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
+        end
+
+        if autoDropHeldItem then
+            dropHeldItem()
+        end
+
+        isTeleporting = false -- Reset status teleportasi
+        table.remove(teleportQueue, 1) -- Hapus tugas yang telah selesai
+
+        -- Jalankan tugas berikutnya jika ada dalam antrian
+        if #teleportQueue > 0 then
+            teleportQueue[1]()
+        end
+    end)
+
+    -- Jika tidak ada teleportasi yang sedang berjalan, mulai proses pertama dalam antrian
+    if #teleportQueue == 1 then
+        teleportQueue[1]()
+    end
+end
+
+-- Membuat tombol untuk setiap item
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = item .. " Teleport",
+        Callback = function()
+            teleportToItem(item)
+        end
+    })
 end
 
 local autoTeleportToMoney = false
