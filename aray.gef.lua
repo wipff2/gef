@@ -2641,12 +2641,51 @@ local Button =
             print("coming soon house2")
         end
 }
- local HttpService = game:GetService("HttpService")
+)
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-
 local LocalPlayer = Players.LocalPlayer
-local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
 
+local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
+local FolderPath = "eyiagbyh"
+local FilePath = FolderPath .. "/fbycoldowneu"
+
+-- Fungsi untuk membaca cooldown dari file
+local function readCooldown()
+    if isfile(FilePath) then
+        local content = readfile(FilePath)
+        return tonumber(content) or 0
+    end
+    return 0
+end
+
+-- Fungsi untuk menyimpan cooldown ke file
+local function writeCooldown(timestamp)
+    if not isfolder(FolderPath) then
+        makefolder(FolderPath)
+    end
+    writefile(FilePath, tostring(timestamp))
+end
+
+-- Fungsi untuk mengirim webhook dengan berbagai metode request
+local function sendWebhook(data)
+    local JSONData = HttpService:JSONEncode(data)
+    local Headers = { ["Content-Type"] = "application/json" }
+
+    if syn and syn.request then
+        syn.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif request then
+        request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif http_request then
+        http_request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif fluxus and fluxus.request then
+        fluxus.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    else
+        warn("Executor tidak mendukung request HTTP!")
+    end
+end
+
+-- GUI Input Callback
 local Input = Tab:CreateInput({
     Name = "Input Example",
     CurrentValue = "",
@@ -2655,24 +2694,27 @@ local Input = Tab:CreateInput({
     Flag = "Input1",
     Callback = function(Text)
         if Text and Text ~= "" then
+            local currentTime = os.time()
+            local lastCooldown = readCooldown()
+
+            if currentTime < lastCooldown then
+                warn("Masih dalam cooldown! Harap tunggu.")
+                return
+            end
+
+            warn("Menunggu 10 detik sebelum mengirim request...")
+            task.wait(10) -- Delay 10 detik
+
             local Data = {
-                ["content"] = "**Message:** " .. Text ..  
-                              "\n**Username:** " .. LocalPlayer.Name ..  
+                ["content"] = "**Message:** " .. Text ..
+                              "\n**Username:** " .. LocalPlayer.Name ..
                               "\n**UserId:** " .. LocalPlayer.UserId
             }
-            local JSONData = HttpService:JSONEncode(Data)
-            
-            -- Kirim request ke webhook
-            syn.request({
-                Url = WebhookURL,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = JSONData
-            })
+            sendWebhook(Data)
+
+            -- Simpan cooldown baru (sekarang + 10 detik)
+            writeCooldown(currentTime + 10)
         end
     end,
 })
-   }
-)
+
