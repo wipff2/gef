@@ -71,7 +71,9 @@ local originalPosition = nil
 local defaultRotation = nil
 local excludeDistance = 20
 local isPreviewActive = false
-local isTeleporting = false -- Status apakah sedang dalam proses teleportasi
+local isTeleporting = false
+local previewBeams = {} 
+local isPreviewActive = false
 local teleportQueue = {} -- Antrian teleportasi
 
 -- Toggle untuk kembali ke posisi awal
