@@ -973,7 +973,6 @@ local ToggleHeal = Tab:CreateToggle({
    end,
 })
 
--- Fungsi untuk makan otomatis
 local function checkTool()
     if not ToggleState then return end -- Hanya berjalan jika toggle aktif
 
@@ -988,22 +987,23 @@ local function checkTool()
     local MinEnergy, MaxEnergy = 70, 100
     local CurrentMaxEnergy = math.clamp(MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy), MinEnergy, MaxEnergy)
 
-    if Energy and Energy.Value >= CurrentMaxEnergy then return end -- Tidak makan jika energi penuh
-
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
-    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak makan jika darah penuh
+    local HealthFull = Humanoid and Humanoid.Health >= 100
+    local EnergyFull = Energy and Energy.Value >= CurrentMaxEnergy
 
-    local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
+    -- Hanya makan jika setidaknya salah satu nilai belum penuh
+    if HealthFull and EnergyFull then return end
+
+    -- Cari Food di workspace.LocalPlayer.Food
+    local Tool = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Food")
+
     if Tool then
         local Progress = Tool:FindFirstChild("Progress")
         local EatEvent = Tool:FindFirstChild("Eat")
 
         if Progress and EatEvent and Progress:IsA("NumberValue") then
-            -- Cek apakah energi berada di bawah batas minimum yang ditentukan
-            if Energy and Energy.Value < CurrentMaxEnergy then
-                Progress.Value = 1 -- Set progress ke penuh
-                EatEvent:FireServer() -- Kirim event makan ke server
-            end
+            Progress.Value = 1 -- Set progress ke penuh
+            EatEvent:FireServer() -- Kirim event makan ke server
         end
     end
 end
@@ -2687,7 +2687,7 @@ end
 
 -- GUI Input Callback
 local Input = Tab:CreateInput({
-    Name = "Input Example",
+    Name = "Type here for suggestions or anything, don't spam!",
     CurrentValue = "",
     PlaceholderText = "Input Placeholder",
     RemoveTextAfterFocusLost = false,
@@ -2698,11 +2698,11 @@ local Input = Tab:CreateInput({
             local lastCooldown = readCooldown()
 
             if currentTime < lastCooldown then
-                warn("Masih dalam cooldown! Harap tunggu.")
+                warn("On Coldown Chill")
                 return
             end
 
-            warn("Menunggu 10 detik sebelum mengirim request...")
+            warn("Wait 10 s for send again")
             task.wait(10) -- Delay 10 detik
 
             local Data = {
