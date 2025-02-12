@@ -977,7 +977,20 @@ local ToggleHeal = Tab:CreateToggle({
 local function checkTool()
     if not ToggleState then return end -- Hanya berjalan jika toggle aktif
 
-    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    local Player = game:GetService("Players").LocalPlayer
+    local Character = Player.Character
+    local Backpack = Player.Backpack
+    local MaxStamina = Player.Upgrades:FindFirstChild("MaxStamina") and Player.Upgrades.MaxStamina.Value or 1
+    local Energy = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Energy")
+
+    -- Hitung MaxEnergy berdasarkan MaxStamina (1 = 70, 4 = 100)
+    local MinStamina, MaxStaminaValue = 1, 4
+    local MinEnergy, MaxEnergy = 70, 100
+    local CurrentMaxEnergy = math.clamp(MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy), MinEnergy, MaxEnergy)
+
+    if Energy and Energy.Value >= CurrentMaxEnergy then return end -- Tidak makan jika energi penuh
+
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
     if Humanoid and Humanoid.Health >= 100 then return end -- Tidak makan jika darah penuh
 
     local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
@@ -986,8 +999,11 @@ local function checkTool()
         local EatEvent = Tool:FindFirstChild("Eat")
 
         if Progress and EatEvent and Progress:IsA("NumberValue") then
-            Progress.Value = 1 -- Set progress ke penuh
-            EatEvent:FireServer() -- Kirim event makan ke server
+            -- Cek apakah energi berada di bawah batas minimum yang ditentukan
+            if Energy and Energy.Value < CurrentMaxEnergy then
+                Progress.Value = 1 -- Set progress ke penuh
+                EatEvent:FireServer() -- Kirim event makan ke server
+            end
         end
     end
 end
