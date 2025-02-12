@@ -104,7 +104,6 @@ Tab:CreateToggle({
         autoDropHeldItem = Value
     end
 })
-
 local function dropHeldItem()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -196,7 +195,7 @@ local function startUpdatingBeams()
         end
     )
 end
-
+local Section = Tab:CreateSection("Distance")
 -- Toggle untuk mengaktifkan/menonaktifkan preview jarak
 Tab:CreateToggle(
     {
@@ -232,7 +231,7 @@ Tab:CreateSlider(
         end
     }
 )
-
+local Section = Tab:CreateSection("Item")
 local function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
