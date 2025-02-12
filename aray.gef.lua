@@ -2640,5 +2640,38 @@ local Button =
             -- auto build house2
             print("coming soon house2")
         end
-    }
+ local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
+
+local Input = Tab:CreateInput({
+    Name = "Input Example",
+    CurrentValue = "",
+    PlaceholderText = "Input Placeholder",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input1",
+    Callback = function(Text)
+        if Text and Text ~= "" then
+            local Data = {
+                ["content"] = "**Message:** " .. Text ..  
+                              "\n**Username:** " .. LocalPlayer.Name ..  
+                              "\n**UserId:** " .. LocalPlayer.UserId
+            }
+            local JSONData = HttpService:JSONEncode(Data)
+            
+            -- Kirim request ke webhook
+            syn.request({
+                Url = WebhookURL,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = JSONData
+            })
+        end
+    end,
+})
+   }
 )
