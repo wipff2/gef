@@ -2304,7 +2304,7 @@ Tab:CreateToggle(
     }
 )
 local Section = Tab:CreateSection("Building")
-local esp = nil -- Simpan satu ESP saja
+local espList = {} -- Simpan semua ESP yang dibuat
 
 local Toggle = Tab:CreateToggle({
     Name = "ESP Shop",
@@ -2312,7 +2312,7 @@ local Toggle = Tab:CreateToggle({
     Flag = "ToggleESP",
     Callback = function(Value)
         if Value then
-            -- Aktifkan ESP hanya untuk satu Shop
+            -- Aktifkan ESP untuk semua Shop
             local buildings = workspace:FindFirstChild("Buildings")
 
             if buildings then
@@ -2320,7 +2320,7 @@ local Toggle = Tab:CreateToggle({
                     local shop = house:FindFirstChild("Shop")
                     if shop then
                         -- Buat BillboardGui (ESP Text)
-                        esp = Instance.new("BillboardGui")
+                        local esp = Instance.new("BillboardGui")
                         esp.Size = UDim2.new(0, 100, 0, 50)
                         esp.Adornee = shop
                         esp.StudsOffset = Vector3.new(0, 5, 0) -- Geser ke atas Shop
@@ -2337,16 +2337,19 @@ local Toggle = Tab:CreateToggle({
                         label.Font = Enum.Font.SourceSansBold
                         label.Parent = esp
 
-                        return -- Hentikan setelah satu Shop ditemukan
+                        -- Simpan ESP ke dalam daftar
+                        table.insert(espList, esp)
                     end
                 end
             end
         else
-            -- Hapus ESP jika toggle dimatikan
-            if esp then
-                esp:Destroy()
-                esp = nil
+            -- Hapus semua ESP jika toggle dimatikan
+            for _, esp in ipairs(espList) do
+                if esp then
+                    esp:Destroy()
+                end
             end
+            espList = {} -- Kosongkan daftar ESP
         end
     end,
 })
