@@ -159,21 +159,20 @@ buildFloorOrRoof(corners[1], corners[3], baseHeight)
 })
 
 local Button = Tab:CreateButton({
-   Name = "Button Example",
+   Name = "Build 2×",
    Callback = function()
-   local scaleFactor = 3 -- Faktor pembesaran
-
-local wallHeight = 10 * scaleFactor -- Tinggi tembok diperbesar
+   local heightIncrement = 0.5 -- Increment ketinggian per iterasi
+local wallHeight = 20 -- Tinggi tembok diperbesar 2×
 local character = game.Players.LocalPlayer.Character
 local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
-local wallDistance = 10 * scaleFactor -- Jarak tembok dari pemain
-local plankSize = Vector3.new(10 * scaleFactor, wallHeight, 0.5 * scaleFactor) -- Ukuran plank diperbesar
-local plankGap = 0.5 * scaleFactor -- Jarak antar plank diperbesar
-local doorSize = Vector3.new(4 * scaleFactor, 6 * scaleFactor, 0.5 * scaleFactor) -- Ukuran pintu diperbesar
+local wallDistance = 20 -- Jarak tembok diperbesar 2×
+local plankSize = Vector3.new(8, 1, 1) -- Ukuran plank diperbesar 2×
+local plankGap = 0.5 -- Jarak antar plank tetap
+local doorSize = Vector3.new(8, 12, 0.5) -- Ukuran pintu diperbesar 2×
 local doors = {} -- Menyimpan posisi pintu
 
 -- Ambil ketinggian dasar dari posisi pemain
-local baseHeight = math.floor(startPosition.Y)
+local baseHeight = math.floor(startPosition.Y) - 3
 
 -- Fungsi untuk membuat plank
 local function buildPlank(startPos, endPos)
@@ -187,46 +186,74 @@ local function buildPlank(startPos, endPos)
     game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
 end
 
--- Fungsi untuk membangun dinding dengan pintu
-local function buildWallWithDoor(corner1, corner2, doorPositions)
-    local xStart = math.min(corner1.X, corner2.X)
-    local xEnd = math.max(corner1.X, corner2.X)
-    local zStart = math.min(corner1.Z, corner2.Z)
-    local zEnd = math.max(corner1.Z, corner2.Z)
+-- Fungsi untuk membangun satu level dari semua dinding
+local function buildWallLevel(corners, currentHeight, doorPositions)
+    for i = 1, #corners do
+        local startCorner = corners[i]
+        local endCorner = corners[(i % #corners) + 1]
+        local xStart = math.min(startCorner.X, endCorner.X)
+        local xEnd = math.max(startCorner.X, endCorner.X)
+        local zStart = math.min(startCorner.Z, endCorner.Z)
+        local zEnd = math.max(startCorner.Z, endCorner.Z)
 
-    if xStart == xEnd then -- Tembok vertikal (sepanjang Z)
-        for z = zStart, zEnd, plankSize.Z + plankGap do
-            local startPlank = Vector3.new(xStart, baseHeight + wallHeight / 2, z)
-            local endPlank = Vector3.new(xStart, baseHeight + wallHeight / 2, z + plankSize.Z)
-            -- Cek apakah plank berada di area pintu
-            local isDoor = false
-            for _, door in ipairs(doorPositions) do
-                if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 then
-                    isDoor = true
-                    break
+        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
+            for z = zStart, zEnd, plankSize.Z + plankGap do
+                local startPlank = Vector3.new(xStart, currentHeight, z)
+                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
                 end
             end
-            if not isDoor then
-                buildPlank(startPlank, endPlank)
-            end
-        end
-    elseif zStart == zEnd then -- Tembok horizontal (sepanjang X)
-        for x = xStart, xEnd, plankSize.X + plankGap do
-            local startPlank = Vector3.new(x, baseHeight + wallHeight / 2, zStart)
-            local endPlank = Vector3.new(x + plankSize.X, baseHeight + wallHeight / 2, zStart)
-            -- Cek apakah plank berada di area pintu
-            local isDoor = false
-            for _, door in ipairs(doorPositions) do
-                if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 then
-                    isDoor = true
-                    break
+        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
+            for x = xStart, xEnd, plankSize.X + plankGap do
+                local startPlank = Vector3.new(x, currentHeight, zStart)
+                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
                 end
-            end
-            if not isDoor then
-                buildPlank(startPlank, endPlank)
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
             end
         end
     end
+end
+
+-- Hitung posisi sudut rumah
+local corners = {
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), 
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), 
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), 
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  
+}
+
+-- Tentukan posisi pintu
+local doorPositions = {
+    { Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2) }, 
+    { Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) }, 
+    {}, 
+    {}  
+}
+
+-- Bangun tembok dari atas ke bawah
+local currentHeight = baseHeight + wallHeight 
+while currentHeight >= baseHeight do
+    buildWallLevel(corners, currentHeight, doorPositions)
+    currentHeight = currentHeight - heightIncrement
+    wait(0.1) 
 end
 
 -- Fungsi untuk membangun lantai atau atap
@@ -242,43 +269,15 @@ local function buildFloorOrRoof(corner1, corner2, height)
             local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
             buildPlank(startPlank, endPlank)
         end
+        wait(0.1)
     end
-end
-
--- Hitung posisi sudut rumah
-local corners = {
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 1
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 2
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), -- Sudut 3
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  -- Sudut 4
-}
-
--- Tentukan posisi pintu
-doors = {
-    Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2), -- Pintu pada tembok pertama
-    Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) -- Pintu pada tembok kedua
-}
-
--- Bangun tembok dengan pintu
-for i = 1, #corners do
-    local startCorner = corners[i]
-    local endCorner = corners[(i % #corners) + 1]
-    local doorPositions = {}
-
-    -- Tambahkan pintu hanya untuk dinding dengan pintu
-    if i == 1 then
-        table.insert(doorPositions, doors[1])
-    elseif i == 2 then
-        table.insert(doorPositions, doors[2])
-    end
-
-    buildWallWithDoor(startCorner, endCorner, doorPositions)
 end
 
 -- Bangun atap
 buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
 
--- Bangun lantai
-buildFloorOrRoof(corners[1], corners[3], baseHeight)
+-- Bangun lantai lebih rendah
+buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
+print("done")
    end,
 })
