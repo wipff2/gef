@@ -18,8 +18,8 @@ local Window =
             FileName = "Big Hub"
         },
         Discord = {
-            Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-            Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+            Enabled = false,
+            Invite = "noinvitelink",
             RememberJoins = false
         },
         KeySystem = false,
