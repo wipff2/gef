@@ -27,10 +27,10 @@ local Window =
             Title = "Untitled",
             Subtitle = "Key System",
             Note = "No method of obtaining the key is provided",
-            FileName = "nicefilees", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-            SaveKey = true,
+            FileName = "nicefilees", 
+            SaveKey = false,
             GrabKeyFromSite = false,
-            Key = {"Hello"}("hello","key22")
+            Key = {"Hello"}
         }
     }
 )
