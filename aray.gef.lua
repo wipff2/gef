@@ -878,7 +878,7 @@ local RunService = game:GetService("RunService")
 local speaker = Players.LocalPlayer
 local Character = speaker.Character or speaker.CharacterAdded:Wait()
 
-local Clip = false
+local Clip = true
 local Noclipping = nil
 local floatName = "HumanoidRootPart" -- Bagian yang tetap tidak bertabrakan
 
@@ -886,23 +886,10 @@ local floatName = "HumanoidRootPart" -- Bagian yang tetap tidak bertabrakan
 local function NoclipLoop()
     if not Clip and Character then
         for _, child in pairs(Character:GetDescendants()) do
-            if child:IsA("BasePart") and child.CanCollide == true and child.Name ~= floatName then
+            if child:IsA("BasePart") and child.CanCollide and child.Name ~= floatName then
                 child.CanCollide = false
             end
         end
-    end
-end
-
--- Fungsi untuk mengaktifkan atau menonaktifkan Noclip
-local function ToggleNoclip(State)
-    Clip = not State -- Jika Noclip aktif, Clip menjadi false
-
-    if State then
-        if not Noclipping then
-            Noclipping = RunService.Stepped:Connect(NoclipLoop)
-        end
-    else
-        Unnoclip()
     end
 end
 
@@ -924,6 +911,18 @@ local function Unnoclip()
     end
 end
 
+-- Fungsi untuk mengaktifkan atau menonaktifkan Noclip
+local function ToggleNoclip(State)
+    if State then
+        Clip = false
+        if not Noclipping then
+            Noclipping = RunService.Stepped:Connect(NoclipLoop)
+        end
+    else
+        Unnoclip()
+    end
+end
+
 -- Toggle untuk Noclip
 Tab:CreateToggle({
     Name = "Noclip",
@@ -933,7 +932,6 @@ Tab:CreateToggle({
         ToggleNoclip(Value)
     end,
 })
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
