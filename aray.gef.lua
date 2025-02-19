@@ -44,12 +44,10 @@ local Label =
     false
 )
 local HttpService = game:GetService("HttpService")
-local codeTemplate = "loadstring(game:HttpGet('%s'))()"
 local scriptURL = "https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef"
+local scriptCode = "loadstring(game:HttpGet('" .. scriptURL .. "'))()"
 
-local scriptCode = string.format(codeTemplate, scriptURL)
-
--- Fungsi untuk menyalin ke clipboard (hanya berfungsi di executor tertentu)
+-- Fungsi untuk menyalin ke clipboard (berfungsi di executor tertentu)
 local function CopyToClipboard(text)
     if setclipboard then
         setclipboard(text)
@@ -64,7 +62,7 @@ end
 
 -- Button untuk menyalin kode
 local Button = Tab:CreateButton({
-    Name = "Copy script",
+    Name = "Copy Loadstring",
     Callback = function()
         CopyToClipboard(scriptCode)
     end,
