@@ -926,7 +926,7 @@ local function NoclipLoop()
     if not Clip and Character then
         for _, child in pairs(Character:GetDescendants()) do
             if child:IsA("BasePart") and child.CanCollide and child.Name ~= floatName then
-                child.CanCollide = false
+                child.CanCollide = true
             end
         end
     end
@@ -944,7 +944,7 @@ local function Unnoclip()
     if Character then
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CanCollide = true
+                part.CanCollide = false
             end
         end
     end
