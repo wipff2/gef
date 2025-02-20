@@ -5,32 +5,32 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 local Window =
     Rayfield:CreateWindow(
     {
-        Name = "S Deepmarian hb",
-        Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+        Name = "H Deepmarian hb keyless",
+        Icon = Home,
         LoadingTitle = "Rayfield Interface",
-        LoadingSubtitle = "by -",
+        LoadingSubtitle = "by -me",
         Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
         DisableRayfieldPrompts = false,
-        DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+        DisableBuildWarnings = false,
         ConfigurationSaving = {
             Enabled = false,
-            FolderName = nil, -- Create a custom folder for your hub/game
+            FolderName = nil,
             FileName = "Big Hub"
         },
         Discord = {
-            Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-            Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
-            RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+            Enabled = false,
+            Invite = "noinvitelink",
+            RememberJoins = false
         },
-        KeySystem = false, -- Set this to true to use our key system
+        KeySystem = false,
         KeySettings = {
             Title = "Untitled",
             Subtitle = "Key System",
-            Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-            FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-            SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-            GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-            Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+            Note = "No method of obtaining the key is provided",
+            FileName = "nicefilees", 
+            SaveKey = false,
+            GrabKeyFromSite = false,
+            Key = {"Hello"}
         }
     }
 )
@@ -43,8 +43,47 @@ local Label =
     Color3.fromRGB(255, 255, 255),
     false
 )
+local HttpService = game:GetService("HttpService")
+local scriptURL = "https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef"
+local scriptCode = "loadstring(game:HttpGet('" .. scriptURL .. "'))()"
+
+-- Fungsi untuk menyalin ke clipboard (berfungsi di executor tertentu)
+local function CopyToClipboard(text)
+    if setclipboard then
+        setclipboard(text)
+    elseif toclipboard then
+        toclipboard(text)
+    elseif syn and syn.write_clipboard then
+        syn.write_clipboard(text)
+    else
+        warn("Clipboard function not supported")
+    end
+end
+
+-- Button untuk menyalin kode
+local Button = Tab:CreateButton({
+    Name = "Copy Loadstring",
+    Callback = function()
+        CopyToClipboard(scriptCode)
+    end,
+})
+
+-- Input untuk mengupdate loadstring
+local Input = Tab:CreateInput({
+    Name = "Script",
+    CurrentValue = scriptURL,
+    PlaceholderText = "Enter new URL",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input1",
+    Callback = function(Text)
+        scriptCode = string.format(codeTemplate, Text)
+    end,
+})
+
+-- Contoh cara mengubah teks input dari kode
+Input:Set("loadstring(game:HttpGet('https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef'))()") -- Akan memperbarui input dan loadstring
 -- Membuat Section untuk metode teleport
-local Section = Tab:CreateSection("TP Method", true) -- Section untuk metode teleport
+local Section = Tab:CreateSection("TP Method", true)
 
 -- Daftar nama tools
 local items = {
@@ -63,69 +102,60 @@ local items = {
     "GPS"
 }
 
--- Variabel untuk menyimpan posisi awal, rotasi awal, dan status ProximityPrompt
-local returnToOriginal = false -- Status toggle untuk kembali ke posisi awal
-local autoTriggerPrompt = false -- Status toggle untuk auto-trigger ProximityPrompt
-local autoDropHeldItem = false -- Status toggle untuk auto-drop item yang dipegang
-local originalPosition = nil -- Posisi awal pemain (CFrame)
-local defaultRotation = nil -- Rotasi default karakter
-local excludeDistance = 20 -- Jarak awal untuk pengecualian (bisa diubah lewat slider)
-local previewBeams = {} -- Tabel untuk menyimpan beam visualisasi
-local isPreviewActive = false -- Status apakah preview aktif
+-- Variabel global
+local returnToOriginal = false
+local autoTriggerPrompt = false
+local autoDropHeldItem = false
+local originalPosition = nil
+local excludeDistance = 20
+local isPreviewActive = false
+local isTeleporting = false
+local previewBeams = {} 
+local isPreviewActive = false
+local teleportQueue = {} -- Antrian teleportasi
 
--- Membuat Toggle untuk kembali ke posisi awal
-Tab:CreateToggle(
-    {
-        Name = "Auto Return to Position",
-        CurrentValue = false,
-        Flag = "ReturnToggle",
-        Callback = function(Value)
-            returnToOriginal = Value
-        end
-    }
-)
+-- Toggle untuk kembali ke posisi awal
+Tab:CreateToggle({
+    Name = "Auto Return to Position",
+    CurrentValue = false,
+    Flag = "ReturnToggle",
+    Callback = function(Value)
+        returnToOriginal = Value
+    end
+})
 
--- Membuat Toggle untuk auto-trigger ProximityPrompt
-Tab:CreateToggle(
-    {
-        Name = "Auto pick items",
-        CurrentValue = false,
-        Flag = "AutoTriggerPromptToggle",
-        Callback = function(Value)
-            autoTriggerPrompt = Value
-        end
-    }
-)
+-- Toggle untuk auto-trigger ProximityPrompt
+Tab:CreateToggle({
+    Name = "Auto pick items",
+    CurrentValue = false,
+    Flag = "AutoTriggerPromptToggle",
+    Callback = function(Value)
+        autoTriggerPrompt = Value
+    end
+})
 
--- Membuat Toggle untuk auto-drop item yang dipegang
-Tab:CreateToggle(
-    {
-        Name = "Auto Drop Items",
-        CurrentValue = false,
-        Flag = "AutoDropHeldItemToggle",
-        Callback = function(Value)
-            autoDropHeldItem = Value
-        end
-    }
-)
-local Section = Tab:CreateSection("Teleport", true)
--- Fungsi untuk drop item yang sedang dipegang dengan delay
+-- Toggle untuk auto-drop item yang dipegang
+Tab:CreateToggle({
+    Name = "Auto Drop Items",
+    CurrentValue = false,
+    Flag = "AutoDropHeldItemToggle",
+    Callback = function(Value)
+        autoDropHeldItem = Value
+    end
+})
 local function dropHeldItem()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
-
-    -- Cek tool di tangan pemain
     local heldTool = character:FindFirstChildOfClass("Tool")
+
     if not heldTool then
         print("Not found.")
         return
     end
 
-    -- Delay sebelum drop item
-    task.wait(0.5) -- Ubah nilai ini untuk mengatur durasi delay
-
-    -- Memanggil event DropItem dari ReplicatedStorage.Events
+    task.wait(0.5) -- Delay sebelum drop item
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
+    
     if dropItemEvent then
         dropItemEvent:FireServer(heldTool)
         print("Drop:", heldTool.Name)
@@ -134,7 +164,6 @@ local function dropHeldItem()
     end
 end
 
--- Fungsi untuk membuat preview lingkaran beam
 local function createPreviewCircle()
     if #previewBeams > 0 then
         return
@@ -205,7 +234,7 @@ local function startUpdatingBeams()
         end
     )
 end
-
+local Section = Tab:CreateSection("Distance")
 -- Toggle untuk mengaktifkan/menonaktifkan preview jarak
 Tab:CreateToggle(
     {
@@ -241,8 +270,7 @@ Tab:CreateSlider(
         end
     }
 )
-
--- Fungsi untuk mencari item terdekat di luar excludeDistance
+local Section = Tab:CreateSection("Item")
 local function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -253,14 +281,12 @@ local function findNearestItemOutsideExcludeDistance(itemName)
         return nil
     end
 
-    -- Validasi folder Pickups
     local pickupsFolder = workspace:FindFirstChild("Pickups")
     if not pickupsFolder then
         warn("not found.")
         return nil
     end
 
-    -- Cari item terdekat di luar excludeDistance
     local nearestItem = nil
     local nearestDistance = math.huge
 
@@ -277,85 +303,88 @@ local function findNearestItemOutsideExcludeDistance(itemName)
     return nearestItem
 end
 
--- Membuat tombol untuk setiap item
-for _, item in ipairs(items) do
-    Tab:CreateButton(
-        {
-            Name = item .. " Teleport",
-            Callback = function()
-                -- Cari item terdekat di luar excludeDistance
-                local nearestItem = findNearestItemOutsideExcludeDistance(item)
+-- Fungsi teleportasi dengan antrian
+local function teleportToItem(item)
+    table.insert(teleportQueue, function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-                if not nearestItem then
-                    warn("No " .. item .. " found.")
-                    return
-                end
+        if not humanoidRootPart then
+            warn("HumanoidRootPart not found.")
+            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            return
+        end
 
-                local player = game.Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        local nearestItem = findNearestItemOutsideExcludeDistance(item)
+        if not nearestItem then
+            warn("No " .. item .. " found.")
+            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            return
+        end
 
-                -- Validasi keberadaan HumanoidRootPart
-                if not humanoidRootPart then
-                    warn("HumanoidRootPart not found.")
-                    return
-                end
+        if returnToOriginal and not isTeleporting then
+            originalPosition = humanoidRootPart.CFrame
+            isTeleporting = true
+            print("Position saved.")
+        end
 
-                -- Simpan rotasi default jika belum disimpan
-                if not defaultRotation then
-                    defaultRotation = humanoidRootPart.CFrame - humanoidRootPart.Position
-                end
+        humanoidRootPart.CFrame = nearestItem.CFrame
+        print("Teleport")
 
-                -- Menyimpan posisi dan rotasi awal jika toggle aktif
-                if returnToOriginal then
-                    originalPosition = humanoidRootPart.CFrame
-                    print("po save.")
-                end
+        task.wait(0.2)
 
-                -- Teleportasi ke item terdekat
-                humanoidRootPart.CFrame = nearestItem.CFrame
-                print("Teleport")
-
-                -- Tunggu 0.2 detik agar karakter sampai ke item
-                task.wait(0.2)
-
-                -- Hanya jalankan fireProximityPrompt jika autoTriggerPrompt aktif
-                if autoTriggerPrompt then
-                    local promptsTriggered = 0
-                    for _, descendant in ipairs(workspace:GetDescendants()) do
-                        if descendant:IsA("ProximityPrompt") then
-                            local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                            if promptDistance <= descendant.MaxActivationDistance then
-                                fireproximityprompt(descendant, 0)
-                                task.wait(0.1)
-                                fireproximityprompt(descendant, 1)
-                                promptsTriggered = promptsTriggered + 1
-                            end
-                        end
+        if autoTriggerPrompt then
+            local promptsTriggered = 0
+            for _, descendant in ipairs(workspace:GetDescendants()) do
+                if descendant:IsA("ProximityPrompt") then
+                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                    if promptDistance <= descendant.MaxActivationDistance then
+                        fireproximityprompt(descendant, 0)
+                        task.wait(0.1)
+                        fireproximityprompt(descendant, 1)
+                        promptsTriggered = promptsTriggered + 1
                     end
-
-                    if promptsTriggered == 0 then
-                    end
-                end
-
-                -- Kembalikan karakter ke posisi awal jika toggle aktif
-                if returnToOriginal and originalPosition then
-                    task.wait(1) -- Tunggu 1 detik sebelum kembali
-                    humanoidRootPart.CFrame = originalPosition -- Kembalikan ke posisi awal
-                    print("Back")
-
-                    -- Atur rotasi ke default (primary)
-                    task.wait(0.5) -- Tunggu 0.5 detik sebelum mengatur rotasi
-                    humanoidRootPart.CFrame = humanoidRootPart.CFrame * defaultRotation
-                end
-
-                -- Drop item yang dipegang jika auto-drop aktif
-                if autoDropHeldItem then
-                    dropHeldItem()
                 end
             end
-        }
-    )
+        end
+
+        if returnToOriginal and originalPosition then
+            task.wait(1)
+            humanoidRootPart.CFrame = originalPosition
+            print("Back")
+
+            task.wait(0.5)
+            
+        end
+
+        if autoDropHeldItem then
+            dropHeldItem()
+        end
+
+        isTeleporting = false -- Reset status teleportasi
+        table.remove(teleportQueue, 1) -- Hapus tugas yang telah selesai
+
+        -- Jalankan tugas berikutnya jika ada dalam antrian
+        if #teleportQueue > 0 then
+            teleportQueue[1]()
+        end
+    end)
+
+    -- Jika tidak ada teleportasi yang sedang berjalan, mulai proses pertama dalam antrian
+    if #teleportQueue == 1 then
+        teleportQueue[1]()
+    end
+end
+
+-- Membuat tombol untuk setiap item
+for _, item in ipairs(items) do
+    Tab:CreateButton({
+        Name = item .. " Teleport",
+        Callback = function()
+            teleportToItem(item)
+        end
+    })
 end
 
 local autoTeleportToMoney = false
@@ -885,46 +914,51 @@ local gefToggle =
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local speaker = Players.LocalPlayer
+local Character = speaker.Character or speaker.CharacterAdded:Wait()
 
 local Clip = true
-local Noclipping
+local Noclipping = nil
+local floatName = "HumanoidRootPart" -- Bagian yang tetap tidak bertabrakan
 
--- Fungsi untuk mengatur noclip
-local function ToggleNoclip(State)
-    Clip = not State -- Jika Noclip aktif, Clip jadi false
-
-    if State then
-        print("Noclip On")
-
-        -- Loop Noclip
-        Noclipping = RunService.Stepped:Connect(function()
-            if not Clip then
-                for _, part in pairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
+-- Fungsi untuk mengaktifkan Noclip
+local function NoclipLoop()
+    if not Clip and Character then
+        for _, child in pairs(Character:GetDescendants()) do
+            if child:IsA("BasePart") and child.CanCollide and child.Name ~= floatName then
+                child.CanCollide = true
             end
-        end)
-    else
-        print("Noclip Off")
-
-        -- Hentikan loop jika aktif
-        if Noclipping then
-            Noclipping:Disconnect()
-            Noclipping = nil
         end
+    end
+end
 
-        -- Mengembalikan CanCollide hanya untuk bagian utama karakter
+-- Fungsi untuk menonaktifkan Noclip (Unnoclip)
+local function Unnoclip()
+    if Noclipping then
+        Noclipping:Disconnect()
+        Noclipping = nil
+    end
+    Clip = true
+
+    -- Mengembalikan CanCollide ke kondisi normal
+    if Character then
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                if part.Name == "HumanoidRootPart" or part.Name == "UpperTorso" or part.Name == "LowerTorso" then
-                    part.CanCollide = true
-                end
+                part.CanCollide = false
             end
         end
+    end
+end
+
+-- Fungsi untuk mengaktifkan atau menonaktifkan Noclip
+local function ToggleNoclip(State)
+    if State then
+        Clip = false
+        if not Noclipping then
+            Noclipping = RunService.Stepped:Connect(NoclipLoop)
+        end
+    else
+        Unnoclip()
     end
 end
 
@@ -966,14 +1000,30 @@ local ToggleHeal = Tab:CreateToggle({
    end,
 })
 
--- Fungsi untuk makan otomatis
 local function checkTool()
     if not ToggleState then return end -- Hanya berjalan jika toggle aktif
 
-    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak makan jika darah penuh
+    local Player = game:GetService("Players").LocalPlayer
+    local Character = Player.Character
+    local Backpack = Player.Backpack
+    local MaxStamina = Player.Upgrades:FindFirstChild("MaxStamina") and Player.Upgrades.MaxStamina.Value or 1
+    local Energy = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Energy")
 
-    local Tool = Character:FindFirstChild("Food") or Backpack:FindFirstChild("Food")
+    -- Hitung MaxEnergy berdasarkan MaxStamina (1 = 70, 4 = 100)
+    local MinStamina, MaxStaminaValue = 1, 4
+    local MinEnergy, MaxEnergy = 70, 100
+    local CurrentMaxEnergy = math.clamp(MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy), MinEnergy, MaxEnergy)
+
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local HealthFull = Humanoid and Humanoid.Health >= 100
+    local EnergyFull = Energy and Energy.Value >= CurrentMaxEnergy
+
+    -- Hanya makan jika setidaknya salah satu nilai belum penuh
+    if HealthFull and EnergyFull then return end
+
+    -- Cari Food di workspace.LocalPlayer.Food
+    local Tool = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Food")
+
     if Tool then
         local Progress = Tool:FindFirstChild("Progress")
         local EatEvent = Tool:FindFirstChild("Eat")
@@ -1411,6 +1461,56 @@ local MaxStaminaInput =
         end
     }
 )
+local RunService = game:GetService("RunService")
+local GEFs = workspace:FindFirstChild("GEFs")
+
+if not GEFs then
+    warn("Found Nothing!")
+    return
+end
+
+-- Variabel untuk toggle status
+local isRunning = false
+local heartbeatConnection -- Variabel untuk menyimpan koneksi Heartbeat
+
+-- Fungsi untuk mengecek dan menghapus GoTo
+local function checkAndRemoveGoTo()
+    if not isRunning then return end -- Jika toggle tidak aktif, hentikan proses
+    
+    for _, gef in ipairs(GEFs:GetChildren()) do
+        if gef:IsA("Model") and (gef.Name:find("Mini GEF") or gef.Name:find("Tiny GEF")) then
+            local goTo = gef:FindFirstChild("GoTo")
+            if goTo then
+                goTo:Destroy()
+            end
+        end
+    end
+end
+
+-- Fungsi untuk mengontrol toggle
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Ghost",
+   CurrentValue = false,
+   Flag = "AutoRemove",
+   Callback = function(Value)
+       isRunning = Value -- Mengubah status toggle
+       
+       if isRunning then
+           -- Mulai deteksi dengan Heartbeat jika belum berjalan
+           if not heartbeatConnection then
+               heartbeatConnection = RunService.Heartbeat:Connect(checkAndRemoveGoTo)
+               
+           end
+       else
+           -- Hentikan deteksi dengan memutus koneksi
+           if heartbeatConnection then
+               heartbeatConnection:Disconnect()
+               heartbeatConnection = nil
+               
+           end
+       end
+   end,
+})
 local gefsHitboxToggle, sgefHitboxToggle
 local gefsHitboxSlider, sgefHitboxSlider
 
@@ -2231,7 +2331,7 @@ Tab:CreateToggle(
     }
 )
 local Section = Tab:CreateSection("Building")
-local esp = nil -- Simpan satu ESP saja
+local espList = {} -- Simpan semua ESP yang dibuat
 
 local Toggle = Tab:CreateToggle({
     Name = "ESP Shop",
@@ -2239,47 +2339,44 @@ local Toggle = Tab:CreateToggle({
     Flag = "ToggleESP",
     Callback = function(Value)
         if Value then
-            -- Aktifkan ESP hanya untuk satu Shop
+            -- Aktifkan ESP untuk semua Shop
             local buildings = workspace:FindFirstChild("Buildings")
 
             if buildings then
                 for _, house in ipairs(buildings:GetChildren()) do
                     local shop = house:FindFirstChild("Shop")
                     if shop then
-                        local door = shop:FindFirstChild("Door")
-                        if door then
-                            local keyhole = door:FindFirstChild("Keyhole")
-                            if keyhole then
-                                -- Buat BillboardGui (ESP Text)
-                                esp = Instance.new("BillboardGui")
-                                esp.Size = UDim2.new(0, 100, 0, 50)
-                                esp.Adornee = keyhole
-                                esp.StudsOffset = Vector3.new(0, 2, 0)
-                                esp.AlwaysOnTop = true
-                                esp.Parent = keyhole
+                        -- Buat BillboardGui (ESP Text)
+                        local esp = Instance.new("BillboardGui")
+                        esp.Size = UDim2.new(0, 100, 0, 50)
+                        esp.Adornee = shop
+                        esp.StudsOffset = Vector3.new(0, 5, 0) -- Geser ke atas Shop
+                        esp.AlwaysOnTop = true
+                        esp.Parent = shop
 
-                                -- Buat TextLabel
-                                local label = Instance.new("TextLabel")
-                                label.Size = UDim2.new(1, 0, 1, 0)
-                                label.BackgroundTransparency = 1
-                                label.Text = "Shop"
-                                label.TextColor3 = Color3.fromRGB(255, 255, 0)
-                                label.TextScaled = true
-                                label.Font = Enum.Font.SourceSansBold
-                                label.Parent = esp
+                        -- Buat TextLabel
+                        local label = Instance.new("TextLabel")
+                        label.Size = UDim2.new(1, 0, 1, 0)
+                        label.BackgroundTransparency = 1
+                        label.Text = "Shop"
+                        label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                        label.TextScaled = true
+                        label.Font = Enum.Font.SourceSansBold
+                        label.Parent = esp
 
-                                return -- Hanya buat satu ESP, keluar dari loop
-                            end
-                        end
+                        -- Simpan ESP ke dalam daftar
+                        table.insert(espList, esp)
                     end
                 end
             end
         else
-            -- Hapus ESP jika toggle dimatikan
-            if esp then
-                esp:Destroy()
-                esp = nil
+            -- Hapus semua ESP jika toggle dimatikan
+            for _, esp in ipairs(espList) do
+                if esp then
+                    esp:Destroy()
+                end
             end
+            espList = {} -- Kosongkan daftar ESP
         end
     end,
 })
@@ -2570,5 +2667,81 @@ local Button =
             -- auto build house2
             print("coming soon house2")
         end
-    }
+}
 )
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
+local FolderPath = "eyiagbyh"
+local FilePath = FolderPath .. "/fbycoldowneu"
+
+-- Fungsi untuk membaca cooldown dari file
+local function readCooldown()
+    if isfile(FilePath) then
+        local content = readfile(FilePath)
+        return tonumber(content) or 0
+    end
+    return 0
+end
+
+-- Fungsi untuk menyimpan cooldown ke file
+local function writeCooldown(timestamp)
+    if not isfolder(FolderPath) then
+        makefolder(FolderPath)
+    end
+    writefile(FilePath, tostring(timestamp))
+end
+
+-- Fungsi untuk mengirim webhook dengan berbagai metode request
+local function sendWebhook(data)
+    local JSONData = HttpService:JSONEncode(data)
+    local Headers = { ["Content-Type"] = "application/json" }
+
+    if syn and syn.request then
+        syn.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif request then
+        request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif http_request then
+        http_request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    elseif fluxus and fluxus.request then
+        fluxus.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+    else
+        warn("Executor tidak mendukung request HTTP!")
+    end
+end
+
+-- GUI Input Callback
+local Input = Tab:CreateInput({
+    Name = "Type here for suggestions or anything, don't spam!",
+    CurrentValue = "",
+    PlaceholderText = "Input Placeholder",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input1",
+    Callback = function(Text)
+        if Text and Text ~= "" then
+            local currentTime = os.time()
+            local lastCooldown = readCooldown()
+
+            if currentTime < lastCooldown then
+                warn("On Coldown Chill")
+                return
+            end
+
+            warn("Wait 10 s for send again")
+            task.wait(10) -- Delay 10 detik
+
+            local Data = {
+                ["content"] = "**Message:** " .. Text ..
+                              "\n**Username:** " .. LocalPlayer.Name ..
+                              "\n**UserId:** " .. LocalPlayer.UserId
+            }
+            sendWebhook(Data)
+
+            -- Simpan cooldown baru (sekarang + 10 detik)
+            writeCooldown(currentTime + 10)
+        end
+    end,
+})
+
