@@ -875,42 +875,56 @@ Tab:CreateToggle(
         end
     }
 )
+local gefsConnection
+local destroyQueue = {}
+local isProcessing = false
 
-local gefsConnection, sgefConnection
-local gefToggle =
-    Tab:CreateToggle(
-    {
-        Name = "Godmode",
-        CurrentValue = false,
-        Flag = "Toggle_GEF",
-        Callback = function(Value)
-            if Value then
-                -- Start detecting and destroying Hurtbox for Mini GEF & Tiny GEF
-                gefsConnection =
-                    workspace.GEFs.ChildAdded:Connect(
-                    function(child)
-                        if (child.Name == "Mini GEF" or child.Name == "Tiny GEF") and child:FindFirstChild("Hurtbox") then
-                            child.Hurtbox:Destroy()
-                        end
-                    end
-                )
+local function destroyHurtboxBatch()
+    if isProcessing then return end
+    isProcessing = true
 
-                -- Destroy existing Hurtbox for Mini GEF & Tiny GEF
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if (gef.Name == "Mini GEF" or gef.Name == "Tiny GEF") and gef:FindFirstChild("Hurtbox") then
-                        gef.Hurtbox:Destroy()
-                    end
+    while #destroyQueue > 0 do
+        local child = table.remove(destroyQueue, 1)
+        if child and child.Parent and child:FindFirstChild("Hurtbox") then
+            child.Hurtbox:Destroy()
+        end
+        task.wait(0.05) -- Batasi penghancuran per batch untuk menghindari lag
+    end
+
+    isProcessing = false
+end
+
+local gefToggle = Tab:CreateToggle({
+    Name = "Godmode",
+    CurrentValue = false,
+    Flag = "Toggle_GEF",
+    Callback = function(Value)
+        if Value then
+            -- Start detecting and queuing Hurtbox for removal
+            gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
+                if (child.Name == "Mini GEF" or child.Name == "Tiny GEF") and child:FindFirstChild("Hurtbox") then
+                    table.insert(destroyQueue, child)
+                    task.spawn(destroyHurtboxBatch)
                 end
-            else
-                -- Stop detecting new Mini GEFs & Tiny GEFs
-                if gefsConnection then
-                    gefsConnection:Disconnect()
-                    gefsConnection = nil
+            end)
+
+            -- Queue existing Hurtbox for destruction
+            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                if (gef.Name == "Mini GEF" or gef.Name == "Tiny GEF") and gef:FindFirstChild("Hurtbox") then
+                    table.insert(destroyQueue, gef)
                 end
             end
+            task.spawn(destroyHurtboxBatch)
+        else
+            -- Stop detecting new Mini GEFs & Tiny GEFs
+            if gefsConnection then
+                gefsConnection:Disconnect()
+                gefsConnection = nil
+            end
+            destroyQueue = {} -- Bersihkan queue saat toggle dimatikan
         end
-    }
-)
+    end
+})
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -1426,41 +1440,6 @@ function stopDetectingParticles()
         connection = nil
     end
 end
-local StaminaRegenInput =
-    Tab:CreateInput(
-    {
-        Name = "Set Stamina Regen",
-        PlaceholderText = "Enter Value",
-        NumbersOnly = true,
-        CharacterLimit = 15,
-        OnEnter = true,
-        RemoveTextAfterFocusLost = false,
-        Callback = function(Text)
-            local Value = tonumber(Text)
-            if Value then
-                game:GetService("Players").LocalPlayer.Upgrades.StaminaRegen.Value = Value
-            end
-        end
-    }
-)
-
-local MaxStaminaInput =
-    Tab:CreateInput(
-    {
-        Name = "Set Max Stamina",
-        PlaceholderText = "Enter Value",
-        NumbersOnly = true,
-        CharacterLimit = 15,
-        OnEnter = true,
-        RemoveTextAfterFocusLost = false,
-        Callback = function(Text)
-            local Value = tonumber(Text)
-            if Value then
-                game:GetService("Players").LocalPlayer.Upgrades.MaxStamina.Value = Value
-            end
-        end
-    }
-)
 local RunService = game:GetService("RunService")
 local GEFs = workspace:FindFirstChild("GEFs")
 
@@ -1511,6 +1490,41 @@ local Toggle = Tab:CreateToggle({
        end
    end,
 })
+local StaminaRegenInput =
+    Tab:CreateInput(
+    {
+        Name = "Set Stamina Regen",
+        PlaceholderText = "Enter Value",
+        NumbersOnly = true,
+        CharacterLimit = 15,
+        OnEnter = true,
+        RemoveTextAfterFocusLost = false,
+        Callback = function(Text)
+            local Value = tonumber(Text)
+            if Value then
+                game:GetService("Players").LocalPlayer.Upgrades.StaminaRegen.Value = Value
+            end
+        end
+    }
+)
+
+local MaxStaminaInput =
+    Tab:CreateInput(
+    {
+        Name = "Set Max Stamina",
+        PlaceholderText = "Enter Value",
+        NumbersOnly = true,
+        CharacterLimit = 15,
+        OnEnter = true,
+        RemoveTextAfterFocusLost = false,
+        Callback = function(Text)
+            local Value = tonumber(Text)
+            if Value then
+                game:GetService("Players").LocalPlayer.Upgrades.MaxStamina.Value = Value
+            end
+        end
+    }
+)
 local gefsHitboxToggle, sgefHitboxToggle
 local gefsHitboxSlider, sgefHitboxSlider
 
@@ -2028,42 +2042,61 @@ local Toggle = Tab:CreateToggle({
     CurrentValue = false,
     Flag = "ToggleESP",
     Callback = function(Value)
-        for _, pickup in ipairs(workspace.Pickups:GetChildren()) do
-            if pickup:IsA("MeshPart") then
-                if Value then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Parent = pickup
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    highlight.Name = "ESP_Highlight"
- 
-                    local billboard = Instance.new("BillboardGui")
-                    billboard.Parent = pickup
-                    billboard.Size = UDim2.new(4, 0, 1, 0)
-                    billboard.StudsOffset = Vector3.new(0, 2, 0)
-                    billboard.AlwaysOnTop = true
-                    billboard.Name = "ESP_Billboard"
-                    
-                    local textLabel = Instance.new("TextLabel")
-                    textLabel.Parent = billboard
-                    textLabel.Size = UDim2.new(1, 0, 1, 0)
-                    textLabel.BackgroundTransparency = 1
-                    textLabel.Text = pickup.Name
-                    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    textLabel.TextScaled = true
-                    textLabel.Font = Enum.Font.SourceSansBold
-                else
-                    if pickup:FindFirstChild("ESP_Highlight") then
-                        pickup.ESP_Highlight:Destroy()
-                    end
-                    if pickup:FindFirstChild("ESP_Billboard") then
-                        pickup.ESP_Billboard:Destroy()
+        local function updateESP()
+            for _, pickup in ipairs(workspace.Pickups:GetChildren()) do
+                if pickup:IsA("MeshPart") then
+                    if Value then
+                        if not pickup:FindFirstChild("ESP_Highlight") then
+                            local highlight = Instance.new("Highlight")
+                            highlight.Parent = pickup
+                            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            highlight.Name = "ESP_Highlight"
+                        end
+                        
+                        if not pickup:FindFirstChild("ESP_Billboard") then
+                            local billboard = Instance.new("BillboardGui")
+                            billboard.Parent = pickup
+                            billboard.Size = UDim2.new(4, 0, 1, 0)
+                            billboard.StudsOffset = Vector3.new(0, 2, 0)
+                            billboard.AlwaysOnTop = true
+                            billboard.Name = "ESP_Billboard"
+                            
+                            local textLabel = Instance.new("TextLabel")
+                            textLabel.Parent = billboard
+                            textLabel.Size = UDim2.new(1, 0, 1, 0)
+                            textLabel.BackgroundTransparency = 1
+                            textLabel.Text = pickup.Name
+                            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            textLabel.TextScaled = true
+                            textLabel.Font = Enum.Font.SourceSansBold
+                        end
+                    else
+                        if pickup:FindFirstChild("ESP_Highlight") then
+                            pickup.ESP_Highlight:Destroy()
+                        end
+                        if pickup:FindFirstChild("ESP_Billboard") then
+                            pickup.ESP_Billboard:Destroy()
+                        end
                     end
                 end
             end
         end
+        
+        -- Loop untuk terus memperbarui ESP saat ada perubahan
+        local connection
+        if Value then
+            connection = workspace.Pickups.ChildAdded:Connect(updateESP)
+            workspace.Pickups.ChildRemoved:Connect(updateESP)
+        else
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        
+        updateESP() -- Jalankan sekali untuk memastikan semua item diperbarui saat toggle diaktifkan
     end,
- })
+})
  local Section = Tab:CreateSection("Gef esp")
 local ESPEnabled = {Tiny = false, Mini = false, Big = false} -- Status toggle ESP
 local ESPConnections = {} -- Menyimpan koneksi untuk pembaruan
@@ -2612,40 +2645,252 @@ local Button =
         Name = "house_one",
         Interact = "Click",
         Callback = function()
-            local player = game:GetService("Players").LocalPlayer
-            local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+            
+local heightIncrement = 0.5 -- Increment ketinggian per iterasi
+local wallHeight = 10 -- Tinggi tembok (relatif terhadap pemain)
+local character = game.Players.LocalPlayer.Character
+local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
+local wallDistance = 10 -- Jarak tembok dari pemain
+local plankSize = Vector3.new(4, 1, 0.5) -- Ukuran plank
+local plankGap = 0.5 -- Jarak antar plank
+local doorSize = Vector3.new(4, 6, 0.5) -- Ukuran pintu (lebar, tinggi, ketebalan)
+local doors = {} -- Menyimpan posisi pintu
 
-            if tool and tool.Name == "Hammer" then
-                local success =
-                    pcall(
-                    function()
-                        loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/auto"))()
+-- Ambil ketinggian dasar dari posisi pemain
+local baseHeight = math.floor(startPosition.Y) - 3 -- Kurangi lebih jauh untuk menurunkan posisi dinding dan lantai
+
+-- Fungsi untuk membuat plank
+local function buildPlank(startPos, endPos)
+    local args = {
+        [1] = startPos,
+        [2] = endPos,
+        [3] = workspace.Road.Part,
+        [4] = workspace.Road.Part,
+        [5] = Vector3.new(0, 1, 0)
+    }
+    game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
+end
+
+-- Fungsi untuk membangun satu level dari semua dinding
+local function buildWallLevel(corners, currentHeight, doorPositions)
+    for i = 1, #corners do
+        local startCorner = corners[i]
+        local endCorner = corners[(i % #corners) + 1]
+        local xStart = math.min(startCorner.X, endCorner.X)
+        local xEnd = math.max(startCorner.X, endCorner.X)
+        local zStart = math.min(startCorner.Z, endCorner.Z)
+        local zEnd = math.max(startCorner.Z, endCorner.Z)
+
+        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
+            for z = zStart, zEnd, plankSize.Z + plankGap do
+                local startPlank = Vector3.new(xStart, currentHeight, z)
+                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
                     end
-                )
-
-                if not success then
-                    warn("Failed to load.")
                 end
-            else
-                ArrayField:Notify(
-                    {
-                        Title = "Get Error",
-                        Content = "Did you know you need to use the Hammer tool for this?",
-                        Duration = 10,
-                        Image = 4483362458,
-                        Actions = {
-                            Ignore = {
-                                Name = "Okay!",
-                                Callback = function()
-                                    print("Need Hammer")
-                                end
-                            }
-                        }
-                    }
-                )
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
+            end
+        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
+            for x = xStart, xEnd, plankSize.X + plankGap do
+                local startPlank = Vector3.new(x, currentHeight, zStart)
+                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
             end
         end
+    end
+end
+
+-- Hitung posisi sudut rumah
+local corners = {
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 1
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 2
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), -- Sudut 3
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  -- Sudut 4
+}
+
+-- Tentukan posisi pintu
+local doorPositions = {
+    { Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2) }, -- Pintu pada tembok pertama
+    { Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) }, -- Pintu pada tembok kedua
+    {}, -- Tidak ada pintu di tembok ketiga
+    {}  -- Tidak ada pintu di tembok keempat
+}
+
+-- Bangun tembok dari atas ke bawah
+local currentHeight = baseHeight + wallHeight -- Mulai dari ketinggian maksimum
+while currentHeight >= baseHeight do
+    buildWallLevel(corners, currentHeight, doorPositions)
+    currentHeight = currentHeight - heightIncrement
+    wait(0.1) -- Untuk mengurangi lag
+end
+
+-- Fungsi untuk membangun lantai atau atap
+local function buildFloorOrRoof(corner1, corner2, height)
+    local xStart = math.min(corner1.X, corner2.X)
+    local xEnd = math.max(corner1.X, corner2.X)
+    local zStart = math.min(corner1.Z, corner2.Z)
+    local zEnd = math.max(corner1.Z, corner2.Z)
+
+    for x = xStart, xEnd, plankSize.X + plankGap do
+        for z = zStart, zEnd, plankSize.Z + plankGap do
+            local startPlank = Vector3.new(x, height, z)
+            local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
+            buildPlank(startPlank, endPlank)
+        end
+        wait(0.1)
+    end
+end
+
+-- Bangun atap
+buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
+
+-- Bangun lantai lebih rendah
+buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
+print("done")
+end,
+})
+local Button =
+    Tab:CreateButton(
+    {
+        Name = "large hosue one",
+        Callback = function()
+            local heightIncrement = 0.5 -- Increment ketinggian per iterasi
+local wallHeight = 20 -- Tinggi tembok diperbesar 2×
+local character = game.Players.LocalPlayer.Character
+local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
+local wallDistance = 20 -- Jarak tembok diperbesar 2×
+local plankSize = Vector3.new(8, 1, 1) -- Ukuran plank diperbesar 2×
+local plankGap = 0.5 -- Jarak antar plank tetap
+local doorSize = Vector3.new(8, 12, 0.5) -- Ukuran pintu diperbesar 2×
+local doors = {} -- Menyimpan posisi pintu
+
+-- Ambil ketinggian dasar dari posisi pemain
+local baseHeight = math.floor(startPosition.Y) - 3
+
+-- Fungsi untuk membuat plank
+local function buildPlank(startPos, endPos)
+    local args = {
+        [1] = startPos,
+        [2] = endPos,
+        [3] = workspace.Road.Part,
+        [4] = workspace.Road.Part,
+        [5] = Vector3.new(0, 1, 0)
     }
+    game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
+end
+
+-- Fungsi untuk membangun satu level dari semua dinding
+local function buildWallLevel(corners, currentHeight, doorPositions)
+    for i = 1, #corners do
+        local startCorner = corners[i]
+        local endCorner = corners[(i % #corners) + 1]
+        local xStart = math.min(startCorner.X, endCorner.X)
+        local xEnd = math.max(startCorner.X, endCorner.X)
+        local zStart = math.min(startCorner.Z, endCorner.Z)
+        local zEnd = math.max(startCorner.Z, endCorner.Z)
+
+        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
+            for z = zStart, zEnd, plankSize.Z + plankGap do
+                local startPlank = Vector3.new(xStart, currentHeight, z)
+                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
+            end
+        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
+            for x = xStart, xEnd, plankSize.X + plankGap do
+                local startPlank = Vector3.new(x, currentHeight, zStart)
+                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
+                -- Cek apakah plank berada di area pintu
+                local isDoor = false
+                for _, door in ipairs(doorPositions[i] or {}) do
+                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
+                        isDoor = true
+                        break
+                    end
+                end
+                if not isDoor then
+                    buildPlank(startPlank, endPlank)
+                end
+            end
+        end
+    end
+end
+
+-- Hitung posisi sudut rumah
+local corners = {
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), 
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), 
+    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), 
+    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  
+}
+
+-- Tentukan posisi pintu
+local doorPositions = {
+    { Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2) }, 
+    { Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) }, 
+    {}, 
+    {}  
+}
+
+-- Bangun tembok dari atas ke bawah
+local currentHeight = baseHeight + wallHeight 
+while currentHeight >= baseHeight do
+    buildWallLevel(corners, currentHeight, doorPositions)
+    currentHeight = currentHeight - heightIncrement
+    wait(0.1) 
+end
+
+-- Fungsi untuk membangun lantai atau atap
+local function buildFloorOrRoof(corner1, corner2, height)
+    local xStart = math.min(corner1.X, corner2.X)
+    local xEnd = math.max(corner1.X, corner2.X)
+    local zStart = math.min(corner1.Z, corner2.Z)
+    local zEnd = math.max(corner1.Z, corner2.Z)
+
+    for x = xStart, xEnd, plankSize.X + plankGap do
+        for z = zStart, zEnd, plankSize.Z + plankGap do
+            local startPlank = Vector3.new(x, height, z)
+            local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
+            buildPlank(startPlank, endPlank)
+        end
+        wait(0.1)
+    end
+end
+
+-- Bangun atap
+buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
+
+-- Bangun lantai lebih rendah
+buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
+print("done")
+        end
+}
 )
 local Button = Tab:CreateButton({
     Name = "print abcd",
@@ -2659,16 +2904,6 @@ local Button = Tab:CreateButton({
     print("------------------------")
     end,
  })
-local Button =
-    Tab:CreateButton(
-    {
-        Name = "House 2",
-        Callback = function()
-            -- auto build house2
-            print("coming soon house2")
-        end
-}
-)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
