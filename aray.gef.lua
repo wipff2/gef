@@ -27,7 +27,7 @@ local Window =
             Title = "Untitled",
             Subtitle = "Key System",
             Note = "No method of obtaining the key is provided",
-            FileName = "nicefilees", 
+            FileName = "nicefilees",
             SaveKey = false,
             GrabKeyFromSite = false,
             Key = {"Hello"}
@@ -45,7 +45,7 @@ local Label =
 )
 local HttpService = game:GetService("HttpService")
 local scriptURL = "https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef"
-local scriptCode = "loadstring(game:HttpGet('" .. scriptURL .. "'))()"
+local scriptCode = string.format("loadstring(game:HttpGet('%s'))()", scriptURL)
 
 -- Fungsi untuk menyalin ke clipboard (berfungsi di executor tertentu)
 local function CopyToClipboard(text)
@@ -65,7 +65,7 @@ local Button = Tab:CreateButton({
     Name = "Copy Loadstring",
     Callback = function()
         CopyToClipboard(scriptCode)
-    end,
+    end
 })
 
 -- Input untuk mengupdate loadstring
@@ -76,12 +76,13 @@ local Input = Tab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Flag = "Input1",
     Callback = function(Text)
-        scriptCode = string.format(codeTemplate, Text)
-    end,
+        scriptURL = Text
+        scriptCode = string.format("loadstring(game:HttpGet('%s'))()", scriptURL)
+    end
 })
 
 -- Contoh cara mengubah teks input dari kode
-Input:Set("loadstring(game:HttpGet('https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef'))()") -- Akan memperbarui input dan loadstring
+Input:Set(scriptCode)
 -- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true)
 
@@ -110,39 +111,45 @@ local originalPosition = nil
 local excludeDistance = 20
 local isPreviewActive = false
 local isTeleporting = false
-local previewBeams = {} 
+local previewBeams = {}
 local isPreviewActive = false
 local teleportQueue = {} -- Antrian teleportasi
 
 -- Toggle untuk kembali ke posisi awal
-Tab:CreateToggle({
-    Name = "Auto Return to Position",
-    CurrentValue = false,
-    Flag = "ReturnToggle",
-    Callback = function(Value)
-        returnToOriginal = Value
-    end
-})
+Tab:CreateToggle(
+    {
+        Name = "Auto Return to Position",
+        CurrentValue = false,
+        Flag = "ReturnToggle",
+        Callback = function(Value)
+            returnToOriginal = Value
+        end
+    }
+)
 
 -- Toggle untuk auto-trigger ProximityPrompt
-Tab:CreateToggle({
-    Name = "Auto pick items",
-    CurrentValue = false,
-    Flag = "AutoTriggerPromptToggle",
-    Callback = function(Value)
-        autoTriggerPrompt = Value
-    end
-})
+Tab:CreateToggle(
+    {
+        Name = "Auto pick items",
+        CurrentValue = false,
+        Flag = "AutoTriggerPromptToggle",
+        Callback = function(Value)
+            autoTriggerPrompt = Value
+        end
+    }
+)
 
 -- Toggle untuk auto-drop item yang dipegang
-Tab:CreateToggle({
-    Name = "Auto Drop Items",
-    CurrentValue = false,
-    Flag = "AutoDropHeldItemToggle",
-    Callback = function(Value)
-        autoDropHeldItem = Value
-    end
-})
+Tab:CreateToggle(
+    {
+        Name = "Auto Drop Items",
+        CurrentValue = false,
+        Flag = "AutoDropHeldItemToggle",
+        Callback = function(Value)
+            autoDropHeldItem = Value
+        end
+    }
+)
 local function dropHeldItem()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -155,7 +162,7 @@ local function dropHeldItem()
 
     task.wait(0.5) -- Delay sebelum drop item
     local dropItemEvent = game:GetService("ReplicatedStorage").Events:FindFirstChild("DropItem")
-    
+
     if dropItemEvent then
         dropItemEvent:FireServer(heldTool)
         print("Drop:", heldTool.Name)
@@ -305,71 +312,72 @@ end
 
 -- Fungsi teleportasi dengan antrian
 local function teleportToItem(item)
-    table.insert(teleportQueue, function()
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    table.insert(
+        teleportQueue,
+        function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-        if not humanoidRootPart then
-            warn("HumanoidRootPart not found.")
-            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
-            return
-        end
+            if not humanoidRootPart then
+                warn("HumanoidRootPart not found.")
+                table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+                return
+            end
 
-        local nearestItem = findNearestItemOutsideExcludeDistance(item)
-        if not nearestItem then
-            warn("No " .. item .. " found.")
-            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
-            return
-        end
+            local nearestItem = findNearestItemOutsideExcludeDistance(item)
+            if not nearestItem then
+                warn("No " .. item .. " found.")
+                table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+                return
+            end
 
-        if returnToOriginal and not isTeleporting then
-            originalPosition = humanoidRootPart.CFrame
-            isTeleporting = true
-            print("Position saved.")
-        end
+            if returnToOriginal and not isTeleporting then
+                originalPosition = humanoidRootPart.CFrame
+                isTeleporting = true
+            end
 
-        humanoidRootPart.CFrame = nearestItem.CFrame
-        print("Teleport")
+            humanoidRootPart.CFrame = nearestItem.CFrame
+            print("Teleport")
 
-        task.wait(0.2)
+            task.wait(0.2)
 
-        if autoTriggerPrompt then
-            local promptsTriggered = 0
-            for _, descendant in ipairs(workspace:GetDescendants()) do
-                if descendant:IsA("ProximityPrompt") then
-                    local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
-                    if promptDistance <= descendant.MaxActivationDistance then
-                        fireproximityprompt(descendant, 0)
-                        task.wait(0.1)
-                        fireproximityprompt(descendant, 1)
-                        promptsTriggered = promptsTriggered + 1
+            if autoTriggerPrompt then
+                local promptsTriggered = 0
+                for _, descendant in ipairs(workspace:GetDescendants()) do
+                    if descendant:IsA("ProximityPrompt") then
+                        local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
+                        if promptDistance <= descendant.MaxActivationDistance then
+                            fireproximityprompt(descendant, 0)
+                            task.wait(0.1)
+                            fireproximityprompt(descendant, 1)
+                            promptsTriggered = promptsTriggered + 1
+                        end
                     end
                 end
             end
+
+            if returnToOriginal and originalPosition then
+                task.wait(1)
+                humanoidRootPart.CFrame = originalPosition
+                
+
+                task.wait(0.5)
+            end
+
+            if autoDropHeldItem then
+                dropHeldItem()
+            end
+
+            isTeleporting = false -- Reset status teleportasi
+            table.remove(teleportQueue, 1) -- Hapus tugas yang telah selesai
+
+            -- Jalankan tugas berikutnya jika ada dalam antrian
+            if #teleportQueue > 0 then
+                teleportQueue[1]()
+            end
         end
-
-        if returnToOriginal and originalPosition then
-            task.wait(1)
-            humanoidRootPart.CFrame = originalPosition
-            print("Back")
-
-            task.wait(0.5)
-            
-        end
-
-        if autoDropHeldItem then
-            dropHeldItem()
-        end
-
-        isTeleporting = false -- Reset status teleportasi
-        table.remove(teleportQueue, 1) -- Hapus tugas yang telah selesai
-
-        -- Jalankan tugas berikutnya jika ada dalam antrian
-        if #teleportQueue > 0 then
-            teleportQueue[1]()
-        end
-    end)
+    )
 
     -- Jika tidak ada teleportasi yang sedang berjalan, mulai proses pertama dalam antrian
     if #teleportQueue == 1 then
@@ -379,12 +387,14 @@ end
 
 -- Membuat tombol untuk setiap item
 for _, item in ipairs(items) do
-    Tab:CreateButton({
-        Name = item .. " Teleport",
-        Callback = function()
-            teleportToItem(item)
-        end
-    })
+    Tab:CreateButton(
+        {
+            Name = item .. " Teleport",
+            Callback = function()
+                teleportToItem(item)
+            end
+        }
+    )
 end
 
 local autoTeleportToMoney = false
@@ -701,9 +711,10 @@ Tab:CreateButton(
         end
     }
 )
-local Section = Tab:CreateSection("buy", true) local isScanning = false -- Status toggle
+local Section = Tab:CreateSection("buy", true)
+local isScanning = false -- Status toggle
 local itemButtons = {} -- Menyimpan tombol yang sudah dibuat
-local connection -- Menyimpan event untuk pemantauan real-time
+local connection  -- Menyimpan event untuk pemantauan real-time
 
 local function autoBuyItem(item)
     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
@@ -732,12 +743,15 @@ local function updateButtons()
 
                         -- Jika tombol belum dibuat, buat tombol baru
                         if not itemButtons[buttonKey] then
-                            itemButtons[buttonKey] = Tab:CreateButton({
-                                Name = string.format("[%s]:[%s]", itemName, tostring(itemPrice)),
-                                Callback = function()
-                                    autoBuyItem(item)
-                                end,
-                            })
+                            itemButtons[buttonKey] =
+                                Tab:CreateButton(
+                                {
+                                    Name = string.format("[%s]:[%s]", itemName, tostring(itemPrice)),
+                                    Callback = function()
+                                        autoBuyItem(item)
+                                    end
+                                }
+                            )
                         end
                         foundItems[buttonKey] = true
                     end
@@ -759,17 +773,22 @@ local function startScanning()
     updateButtons() -- Perbarui tombol awal
 
     -- Event untuk mendeteksi perubahan di workspace secara langsung
-    connection = workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("ValueBase") then
-            updateButtons()
+    connection =
+        workspace.DescendantAdded:Connect(
+        function(obj)
+            if obj:IsA("ValueBase") then
+                updateButtons()
+            end
         end
-    end)
+    )
 
-    workspace.DescendantRemoving:Connect(function(obj)
-        if obj:IsA("ValueBase") then
-            updateButtons()
+    workspace.DescendantRemoving:Connect(
+        function(obj)
+            if obj:IsA("ValueBase") then
+                updateButtons()
+            end
         end
-    end)
+    )
 end
 
 -- Fungsi untuk menghentikan pemindaian
@@ -781,20 +800,20 @@ local function stopScanning()
 end
 
 -- Membuat Toggle
-Tab:CreateToggle({
-    Name = "On/off Shop",
-    Default = false,
-    Callback = function(state)
-        isScanning = state -- Mengatur status toggle
-        if isScanning then
-            
-            startScanning()
-        else
-            
-            stopScanning()
+Tab:CreateToggle(
+    {
+        Name = "On/off Shop",
+        Default = false,
+        Callback = function(state)
+            isScanning = state -- Mengatur status toggle
+            if isScanning then
+                startScanning()
+            else
+                stopScanning()
+            end
         end
-    end,
-})
+    }
+)
 local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -840,7 +859,6 @@ Tab:CreateButton(
             if randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local targetPosition = randomPlayer.Character.HumanoidRootPart.Position
                 localPlayer.Character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
-                
             else
                 warn("Failed Error.")
             end
@@ -880,7 +898,9 @@ local destroyQueue = {}
 local isProcessing = false
 
 local function destroyHurtboxBatch()
-    if isProcessing then return end
+    if isProcessing then
+        return
+    end
     isProcessing = true
 
     while #destroyQueue > 0 do
@@ -894,37 +914,43 @@ local function destroyHurtboxBatch()
     isProcessing = false
 end
 
-local gefToggle = Tab:CreateToggle({
-    Name = "Godmode",
-    CurrentValue = false,
-    Flag = "Toggle_GEF",
-    Callback = function(Value)
-        if Value then
-            -- Start detecting and queuing Hurtbox for removal
-            gefsConnection = workspace.GEFs.ChildAdded:Connect(function(child)
-                if (child.Name == "Mini GEF" or child.Name == "Tiny GEF") and child:FindFirstChild("Hurtbox") then
-                    table.insert(destroyQueue, child)
-                    task.spawn(destroyHurtboxBatch)
-                end
-            end)
+local gefToggle =
+    Tab:CreateToggle(
+    {
+        Name = "Godmode",
+        CurrentValue = false,
+        Flag = "Toggle_GEF",
+        Callback = function(Value)
+            if Value then
+                -- Start detecting and queuing Hurtbox for removal
+                gefsConnection =
+                    workspace.GEFs.ChildAdded:Connect(
+                    function(child)
+                        if (child.Name == "Mini GEF" or child.Name == "Tiny GEF") and child:FindFirstChild("Hurtbox") then
+                            table.insert(destroyQueue, child)
+                            task.spawn(destroyHurtboxBatch)
+                        end
+                    end
+                )
 
-            -- Queue existing Hurtbox for destruction
-            for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                if (gef.Name == "Mini GEF" or gef.Name == "Tiny GEF") and gef:FindFirstChild("Hurtbox") then
-                    table.insert(destroyQueue, gef)
+                -- Queue existing Hurtbox for destruction
+                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+                    if (gef.Name == "Mini GEF" or gef.Name == "Tiny GEF") and gef:FindFirstChild("Hurtbox") then
+                        table.insert(destroyQueue, gef)
+                    end
                 end
+                task.spawn(destroyHurtboxBatch)
+            else
+                -- Stop detecting new Mini GEFs & Tiny GEFs
+                if gefsConnection then
+                    gefsConnection:Disconnect()
+                    gefsConnection = nil
+                end
+                destroyQueue = {} -- Bersihkan queue saat toggle dimatikan
             end
-            task.spawn(destroyHurtboxBatch)
-        else
-            -- Stop detecting new Mini GEFs & Tiny GEFs
-            if gefsConnection then
-                gefsConnection:Disconnect()
-                gefsConnection = nil
-            end
-            destroyQueue = {} -- Bersihkan queue saat toggle dimatikan
         end
-    end
-})
+    }
+)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -977,14 +1003,16 @@ local function ToggleNoclip(State)
 end
 
 -- Toggle untuk Noclip
-Tab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Flag = "NoclipToggle",
-    Callback = function(Value)
-        ToggleNoclip(Value)
-    end,
-})
+Tab:CreateToggle(
+    {
+        Name = "Noclip",
+        CurrentValue = false,
+        Flag = "NoclipToggle",
+        Callback = function(Value)
+            ToggleNoclip(Value)
+        end
+    }
+)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -994,28 +1022,36 @@ local Backpack = LocalPlayer:WaitForChild("Backpack")
 
 -- Toggle untuk Fast Eat Food
 local ToggleState = false
-local Toggle = Tab:CreateToggle({
-   Name = "Fast Eat Food",
-   CurrentValue = false,
-   Flag = "AutoEatToggle",
-   Callback = function(Value)
-      ToggleState = Value
-   end,
-})
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "Fast Eat Food",
+        CurrentValue = false,
+        Flag = "AutoEatToggle",
+        Callback = function(Value)
+            ToggleState = Value
+        end
+    }
+)
 
 -- Toggle untuk Fast Heal Medkit
 local HealingEnabled = false
-local ToggleHeal = Tab:CreateToggle({
-   Name = "Fast Heal Medkit",
-   CurrentValue = false,
-   Flag = "HealingToggle",
-   Callback = function(Value)
-      HealingEnabled = Value
-   end,
-})
+local ToggleHeal =
+    Tab:CreateToggle(
+    {
+        Name = "Fast Heal Medkit",
+        CurrentValue = false,
+        Flag = "HealingToggle",
+        Callback = function(Value)
+            HealingEnabled = Value
+        end
+    }
+)
 
 local function checkTool()
-    if not ToggleState then return end -- Hanya berjalan jika toggle aktif
+    if not ToggleState then
+        return
+    end -- Hanya berjalan jika toggle aktif
 
     local Player = game:GetService("Players").LocalPlayer
     local Character = Player.Character
@@ -1026,14 +1062,21 @@ local function checkTool()
     -- Hitung MaxEnergy berdasarkan MaxStamina (1 = 70, 4 = 100)
     local MinStamina, MaxStaminaValue = 1, 4
     local MinEnergy, MaxEnergy = 70, 100
-    local CurrentMaxEnergy = math.clamp(MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy), MinEnergy, MaxEnergy)
+    local CurrentMaxEnergy =
+        math.clamp(
+        MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy),
+        MinEnergy,
+        MaxEnergy
+    )
 
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
     local HealthFull = Humanoid and Humanoid.Health >= 100
     local EnergyFull = Energy and Energy.Value >= CurrentMaxEnergy
 
     -- Hanya makan jika setidaknya salah satu nilai belum penuh
-    if HealthFull and EnergyFull then return end
+    if HealthFull and EnergyFull then
+        return
+    end
 
     -- Cari Food di workspace.LocalPlayer.Food
     local Tool = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Food")
@@ -1051,10 +1094,14 @@ end
 
 -- Fungsi untuk penyembuhan otomatis
 local function HealPlayer()
-    if not HealingEnabled then return end -- Tidak melakukan apa-apa jika toggle OFF
+    if not HealingEnabled then
+        return
+    end -- Tidak melakukan apa-apa jika toggle OFF
 
     local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-    if Humanoid and Humanoid.Health >= 100 then return end -- Tidak heal jika darah penuh
+    if Humanoid and Humanoid.Health >= 100 then
+        return
+    end -- Tidak heal jika darah penuh
 
     local Tool = Character:FindFirstChild("Medkit")
     if Tool then
@@ -1067,8 +1114,6 @@ local function HealPlayer()
         if HealEvent and HealEvent:IsA("RemoteEvent") then
             HealEvent:FireServer()
         end
-
-        
     end
 end
 
@@ -1450,12 +1495,14 @@ end
 
 -- Variabel untuk toggle status
 local isRunning = false
-local heartbeatConnection -- Variabel untuk menyimpan koneksi Heartbeat
+local heartbeatConnection  -- Variabel untuk menyimpan koneksi Heartbeat
 
 -- Fungsi untuk mengecek dan menghapus GoTo
 local function checkAndRemoveGoTo()
-    if not isRunning then return end -- Jika toggle tidak aktif, hentikan proses
-    
+    if not isRunning then
+        return
+    end -- Jika toggle tidak aktif, hentikan proses
+
     for _, gef in ipairs(GEFs:GetChildren()) do
         if gef:IsA("Model") and (gef.Name:find("Mini GEF") or gef.Name:find("Tiny GEF")) then
             local goTo = gef:FindFirstChild("GoTo")
@@ -1467,29 +1514,30 @@ local function checkAndRemoveGoTo()
 end
 
 -- Fungsi untuk mengontrol toggle
-local Toggle = Tab:CreateToggle({
-   Name = "Auto Ghost",
-   CurrentValue = false,
-   Flag = "AutoRemove",
-   Callback = function(Value)
-       isRunning = Value -- Mengubah status toggle
-       
-       if isRunning then
-           -- Mulai deteksi dengan Heartbeat jika belum berjalan
-           if not heartbeatConnection then
-               heartbeatConnection = RunService.Heartbeat:Connect(checkAndRemoveGoTo)
-               
-           end
-       else
-           -- Hentikan deteksi dengan memutus koneksi
-           if heartbeatConnection then
-               heartbeatConnection:Disconnect()
-               heartbeatConnection = nil
-               
-           end
-       end
-   end,
-})
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "Auto Ghost",
+        CurrentValue = false,
+        Flag = "AutoRemove",
+        Callback = function(Value)
+            isRunning = Value -- Mengubah status toggle
+
+            if isRunning then
+                -- Mulai deteksi dengan Heartbeat jika belum berjalan
+                if not heartbeatConnection then
+                    heartbeatConnection = RunService.Heartbeat:Connect(checkAndRemoveGoTo)
+                end
+            else
+                -- Hentikan deteksi dengan memutus koneksi
+                if heartbeatConnection then
+                    heartbeatConnection:Disconnect()
+                    heartbeatConnection = nil
+                end
+            end
+        end
+    }
+)
 local StaminaRegenInput =
     Tab:CreateInput(
     {
@@ -2037,67 +2085,70 @@ game:GetService("RunService").RenderStepped:Connect(
         end
     end
 )
-local Toggle = Tab:CreateToggle({
-    Name = "ESP All Item",
-    CurrentValue = false,
-    Flag = "ToggleESP",
-    Callback = function(Value)
-        local function updateESP()
-            for _, pickup in ipairs(workspace.Pickups:GetChildren()) do
-                if pickup:IsA("MeshPart") then
-                    if Value then
-                        if not pickup:FindFirstChild("ESP_Highlight") then
-                            local highlight = Instance.new("Highlight")
-                            highlight.Parent = pickup
-                            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            highlight.Name = "ESP_Highlight"
-                        end
-                        
-                        if not pickup:FindFirstChild("ESP_Billboard") then
-                            local billboard = Instance.new("BillboardGui")
-                            billboard.Parent = pickup
-                            billboard.Size = UDim2.new(4, 0, 1, 0)
-                            billboard.StudsOffset = Vector3.new(0, 2, 0)
-                            billboard.AlwaysOnTop = true
-                            billboard.Name = "ESP_Billboard"
-                            
-                            local textLabel = Instance.new("TextLabel")
-                            textLabel.Parent = billboard
-                            textLabel.Size = UDim2.new(1, 0, 1, 0)
-                            textLabel.BackgroundTransparency = 1
-                            textLabel.Text = pickup.Name
-                            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            textLabel.TextScaled = true
-                            textLabel.Font = Enum.Font.SourceSansBold
-                        end
-                    else
-                        if pickup:FindFirstChild("ESP_Highlight") then
-                            pickup.ESP_Highlight:Destroy()
-                        end
-                        if pickup:FindFirstChild("ESP_Billboard") then
-                            pickup.ESP_Billboard:Destroy()
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "ESP All Item",
+        CurrentValue = false,
+        Flag = "ToggleESP",
+        Callback = function(Value)
+            local function updateESP()
+                for _, pickup in ipairs(workspace.Pickups:GetChildren()) do
+                    if pickup:IsA("MeshPart") then
+                        if Value then
+                            if not pickup:FindFirstChild("ESP_Highlight") then
+                                local highlight = Instance.new("Highlight")
+                                highlight.Parent = pickup
+                                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                highlight.Name = "ESP_Highlight"
+                            end
+
+                            if not pickup:FindFirstChild("ESP_Billboard") then
+                                local billboard = Instance.new("BillboardGui")
+                                billboard.Parent = pickup
+                                billboard.Size = UDim2.new(4, 0, 1, 0)
+                                billboard.StudsOffset = Vector3.new(0, 2, 0)
+                                billboard.AlwaysOnTop = true
+                                billboard.Name = "ESP_Billboard"
+
+                                local textLabel = Instance.new("TextLabel")
+                                textLabel.Parent = billboard
+                                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                                textLabel.BackgroundTransparency = 1
+                                textLabel.Text = pickup.Name
+                                textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                textLabel.TextScaled = true
+                                textLabel.Font = Enum.Font.SourceSansBold
+                            end
+                        else
+                            if pickup:FindFirstChild("ESP_Highlight") then
+                                pickup.ESP_Highlight:Destroy()
+                            end
+                            if pickup:FindFirstChild("ESP_Billboard") then
+                                pickup.ESP_Billboard:Destroy()
+                            end
                         end
                     end
                 end
             end
-        end
-        
-        -- Loop untuk terus memperbarui ESP saat ada perubahan
-        local connection
-        if Value then
-            connection = workspace.Pickups.ChildAdded:Connect(updateESP)
-            workspace.Pickups.ChildRemoved:Connect(updateESP)
-        else
-            if connection then
-                connection:Disconnect()
+
+            -- Loop untuk terus memperbarui ESP saat ada perubahan
+            local connection
+            if Value then
+                connection = workspace.Pickups.ChildAdded:Connect(updateESP)
+                workspace.Pickups.ChildRemoved:Connect(updateESP)
+            else
+                if connection then
+                    connection:Disconnect()
+                end
             end
+
+            updateESP() -- Jalankan sekali untuk memastikan semua item diperbarui saat toggle diaktifkan
         end
-        
-        updateESP() -- Jalankan sekali untuk memastikan semua item diperbarui saat toggle diaktifkan
-    end,
-})
- local Section = Tab:CreateSection("Gef esp")
+    }
+)
+local Section = Tab:CreateSection("Gef esp")
 local ESPEnabled = {Tiny = false, Mini = false, Big = false} -- Status toggle ESP
 local ESPConnections = {} -- Menyimpan koneksi untuk pembaruan
 local player = game.Players.LocalPlayer
@@ -2224,7 +2275,6 @@ Tab:CreateToggle(
         Callback = function(value)
             espMiniGEFEnabled = value
             if value then
-                
             end
         end
     }
@@ -2239,7 +2289,6 @@ Tab:CreateToggle(
         Callback = function(value)
             espTinyGEFEnabled = value
             if value then
-                
             end
         end
     }
@@ -2366,53 +2415,56 @@ Tab:CreateToggle(
 local Section = Tab:CreateSection("Building")
 local espList = {} -- Simpan semua ESP yang dibuat
 
-local Toggle = Tab:CreateToggle({
-    Name = "ESP Shop",
-    CurrentValue = false,
-    Flag = "ToggleESP",
-    Callback = function(Value)
-        if Value then
-            -- Aktifkan ESP untuk semua Shop
-            local buildings = workspace:FindFirstChild("Buildings")
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "ESP Shop",
+        CurrentValue = false,
+        Flag = "ToggleESP",
+        Callback = function(Value)
+            if Value then
+                -- Aktifkan ESP untuk semua Shop
+                local buildings = workspace:FindFirstChild("Buildings")
 
-            if buildings then
-                for _, house in ipairs(buildings:GetChildren()) do
-                    local shop = house:FindFirstChild("Shop")
-                    if shop then
-                        -- Buat BillboardGui (ESP Text)
-                        local esp = Instance.new("BillboardGui")
-                        esp.Size = UDim2.new(0, 100, 0, 50)
-                        esp.Adornee = shop
-                        esp.StudsOffset = Vector3.new(0, 5, 0) -- Geser ke atas Shop
-                        esp.AlwaysOnTop = true
-                        esp.Parent = shop
+                if buildings then
+                    for _, house in ipairs(buildings:GetChildren()) do
+                        local shop = house:FindFirstChild("Shop")
+                        if shop then
+                            -- Buat BillboardGui (ESP Text)
+                            local esp = Instance.new("BillboardGui")
+                            esp.Size = UDim2.new(0, 100, 0, 50)
+                            esp.Adornee = shop
+                            esp.StudsOffset = Vector3.new(0, 5, 0) -- Geser ke atas Shop
+                            esp.AlwaysOnTop = true
+                            esp.Parent = shop
 
-                        -- Buat TextLabel
-                        local label = Instance.new("TextLabel")
-                        label.Size = UDim2.new(1, 0, 1, 0)
-                        label.BackgroundTransparency = 1
-                        label.Text = "Shop"
-                        label.TextColor3 = Color3.fromRGB(255, 255, 0)
-                        label.TextScaled = true
-                        label.Font = Enum.Font.SourceSansBold
-                        label.Parent = esp
+                            -- Buat TextLabel
+                            local label = Instance.new("TextLabel")
+                            label.Size = UDim2.new(1, 0, 1, 0)
+                            label.BackgroundTransparency = 1
+                            label.Text = "Shop"
+                            label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                            label.TextScaled = true
+                            label.Font = Enum.Font.SourceSansBold
+                            label.Parent = esp
 
-                        -- Simpan ESP ke dalam daftar
-                        table.insert(espList, esp)
+                            -- Simpan ESP ke dalam daftar
+                            table.insert(espList, esp)
+                        end
                     end
                 end
-            end
-        else
-            -- Hapus semua ESP jika toggle dimatikan
-            for _, esp in ipairs(espList) do
-                if esp then
-                    esp:Destroy()
+            else
+                -- Hapus semua ESP jika toggle dimatikan
+                for _, esp in ipairs(espList) do
+                    if esp then
+                        esp:Destroy()
+                    end
                 end
+                espList = {} -- Kosongkan daftar ESP
             end
-            espList = {} -- Kosongkan daftar ESP
         end
-    end,
-})
+    }
+)
 local ESPs = {} -- Menyimpan semua ESP yang dibuat
 
 local function createESP(target)
@@ -2449,27 +2501,30 @@ local function removeAllESP()
     ESPs = {} -- Kosongkan daftar ESP
 end
 
-local Toggle = Tab:CreateToggle({
-    Name = "Toggle ESP Tower",
-    CurrentValue = false,
-    Flag = "ToggleESPTower",
-    Callback = function(Value)
-        if Value then
-            -- Aktifkan ESP untuk semua Tower
-            local buildings = workspace:FindFirstChild("Buildings")
-            if buildings then
-                for _, obj in ipairs(buildings:GetChildren()) do
-                    if obj.Name:find("Tower") then -- Cek jika nama mengandung "Tower"
-                        createESP(obj)
+local Toggle =
+    Tab:CreateToggle(
+    {
+        Name = "Toggle ESP Tower",
+        CurrentValue = false,
+        Flag = "ToggleESPTower",
+        Callback = function(Value)
+            if Value then
+                -- Aktifkan ESP untuk semua Tower
+                local buildings = workspace:FindFirstChild("Buildings")
+                if buildings then
+                    for _, obj in ipairs(buildings:GetChildren()) do
+                        if obj.Name:find("Tower") then -- Cek jika nama mengandung "Tower"
+                            createESP(obj)
+                        end
                     end
                 end
+            else
+                -- Hapus semua ESP jika toggle dimatikan
+                removeAllESP()
             end
-        else
-            -- Hapus semua ESP jika toggle dimatikan
-            removeAllESP()
         end
-    end,
-})
+    }
+)
 local Tab = Window:CreateTab("Misc", "braces")
 local Section = Tab:CreateSection("server", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
 local TeleportService = game:GetService("TeleportService")
@@ -2639,276 +2694,59 @@ Tab:CreateButton(
 )
 
 local Tab = Window:CreateTab("Autobuilding", "hammer")
-local Button =
-    Tab:CreateButton(
-    {
-        Name = "house_one",
-        Interact = "Click",
-        Callback = function()
-            
-local heightIncrement = 0.5 -- Increment ketinggian per iterasi
-local wallHeight = 10 -- Tinggi tembok (relatif terhadap pemain)
-local character = game.Players.LocalPlayer.Character
-local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
-local wallDistance = 10 -- Jarak tembok dari pemain
-local plankSize = Vector3.new(4, 1, 0.5) -- Ukuran plank
-local plankGap = 0.5 -- Jarak antar plank
-local doorSize = Vector3.new(4, 6, 0.5) -- Ukuran pintu (lebar, tinggi, ketebalan)
-local doors = {} -- Menyimpan posisi pintu
-
--- Ambil ketinggian dasar dari posisi pemain
-local baseHeight = math.floor(startPosition.Y) - 3 -- Kurangi lebih jauh untuk menurunkan posisi dinding dan lantai
-
--- Fungsi untuk membuat plank
-local function buildPlank(startPos, endPos)
-    local args = {
-        [1] = startPos,
-        [2] = endPos,
-        [3] = workspace.Road.Part,
-        [4] = workspace.Road.Part,
-        [5] = Vector3.new(0, 1, 0)
-    }
-    game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
-end
-
--- Fungsi untuk membangun satu level dari semua dinding
-local function buildWallLevel(corners, currentHeight, doorPositions)
-    for i = 1, #corners do
-        local startCorner = corners[i]
-        local endCorner = corners[(i % #corners) + 1]
-        local xStart = math.min(startCorner.X, endCorner.X)
-        local xEnd = math.max(startCorner.X, endCorner.X)
-        local zStart = math.min(startCorner.Z, endCorner.Z)
-        local zEnd = math.max(startCorner.Z, endCorner.Z)
-
-        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
-            for z = zStart, zEnd, plankSize.Z + plankGap do
-                local startPlank = Vector3.new(xStart, currentHeight, z)
-                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
-                -- Cek apakah plank berada di area pintu
-                local isDoor = false
-                for _, door in ipairs(doorPositions[i] or {}) do
-                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
-                        isDoor = true
-                        break
-                    end
-                end
-                if not isDoor then
-                    buildPlank(startPlank, endPlank)
-                end
-            end
-        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
-            for x = xStart, xEnd, plankSize.X + plankGap do
-                local startPlank = Vector3.new(x, currentHeight, zStart)
-                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
-                -- Cek apakah plank berada di area pintu
-                local isDoor = false
-                for _, door in ipairs(doorPositions[i] or {}) do
-                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
-                        isDoor = true
-                        break
-                    end
-                end
-                if not isDoor then
-                    buildPlank(startPlank, endPlank)
-                end
-            end
+-- Membuat tombol pertama untuk 'house_one'
+local houseOneButton = Tab:CreateButton({
+    Name = "House One",
+    Interact = "Click",
+    Callback = function()
+        print("Loading House One...")
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/houseone"))()
+        end)
+        if not success then
+            warn("Failed to load House One: " .. tostring(err))
         end
     end
-end
+})
 
--- Hitung posisi sudut rumah
-local corners = {
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 1
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), -- Sudut 2
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), -- Sudut 3
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  -- Sudut 4
-}
-
--- Tentukan posisi pintu
-local doorPositions = {
-    { Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2) }, -- Pintu pada tembok pertama
-    { Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) }, -- Pintu pada tembok kedua
-    {}, -- Tidak ada pintu di tembok ketiga
-    {}  -- Tidak ada pintu di tembok keempat
-}
-
--- Bangun tembok dari atas ke bawah
-local currentHeight = baseHeight + wallHeight -- Mulai dari ketinggian maksimum
-while currentHeight >= baseHeight do
-    buildWallLevel(corners, currentHeight, doorPositions)
-    currentHeight = currentHeight - heightIncrement
-    wait(0.1) -- Untuk mengurangi lag
-end
-
--- Fungsi untuk membangun lantai atau atap
-local function buildFloorOrRoof(corner1, corner2, height)
-    local xStart = math.min(corner1.X, corner2.X)
-    local xEnd = math.max(corner1.X, corner2.X)
-    local zStart = math.min(corner1.Z, corner2.Z)
-    local zEnd = math.max(corner1.Z, corner2.Z)
-
-    for x = xStart, xEnd, plankSize.X + plankGap do
-        for z = zStart, zEnd, plankSize.Z + plankGap do
-            local startPlank = Vector3.new(x, height, z)
-            local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
-            buildPlank(startPlank, endPlank)
+-- Membuat tombol kedua untuk 'large house one'
+local largeHouseButton = Tab:CreateButton({
+    Name = "Large House One",
+    Interact = "Click",
+    Callback = function()
+        print("Loading Large House One...")
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/largehouse"))()
+        end)
+        if not success then
+            warn("Failed to load Large House One: " .. tostring(err))
         end
-        wait(0.1)
     end
-end
-
--- Bangun atap
-buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
-
--- Bangun lantai lebih rendah
-buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
-print("done")
-end,
 })
 local Button =
     Tab:CreateButton(
     {
-        Name = "large hosue one",
+        Name = "print abcd",
         Callback = function()
-            local heightIncrement = 0.5 -- Increment ketinggian per iterasi
-local wallHeight = 20 -- Tinggi tembok diperbesar 2×
-local character = game.Players.LocalPlayer.Character
-local startPosition = character.HumanoidRootPart.Position -- Posisi pemain
-local wallDistance = 20 -- Jarak tembok diperbesar 2×
-local plankSize = Vector3.new(8, 1, 1) -- Ukuran plank diperbesar 2×
-local plankGap = 0.5 -- Jarak antar plank tetap
-local doorSize = Vector3.new(8, 12, 0.5) -- Ukuran pintu diperbesar 2×
-local doors = {} -- Menyimpan posisi pintu
-
--- Ambil ketinggian dasar dari posisi pemain
-local baseHeight = math.floor(startPosition.Y) - 3
-
--- Fungsi untuk membuat plank
-local function buildPlank(startPos, endPos)
-    local args = {
-        [1] = startPos,
-        [2] = endPos,
-        [3] = workspace.Road.Part,
-        [4] = workspace.Road.Part,
-        [5] = Vector3.new(0, 1, 0)
+            print("abcd")
+        end
     }
-    game:GetService("Players").LocalPlayer.Character.Hammer.BuildPlank:FireServer(unpack(args))
-end
-
--- Fungsi untuk membangun satu level dari semua dinding
-local function buildWallLevel(corners, currentHeight, doorPositions)
-    for i = 1, #corners do
-        local startCorner = corners[i]
-        local endCorner = corners[(i % #corners) + 1]
-        local xStart = math.min(startCorner.X, endCorner.X)
-        local xEnd = math.max(startCorner.X, endCorner.X)
-        local zStart = math.min(startCorner.Z, endCorner.Z)
-        local zEnd = math.max(startCorner.Z, endCorner.Z)
-
-        if xStart == xEnd then -- Jika tembok vertikal (sepanjang Z)
-            for z = zStart, zEnd, plankSize.Z + plankGap do
-                local startPlank = Vector3.new(xStart, currentHeight, z)
-                local endPlank = Vector3.new(xStart, currentHeight, z + plankSize.Z)
-                -- Cek apakah plank berada di area pintu
-                local isDoor = false
-                for _, door in ipairs(doorPositions[i] or {}) do
-                    if z >= door.Z - doorSize.Z / 2 and z <= door.Z + doorSize.Z / 2 and currentHeight <= baseHeight + doorSize.Y then
-                        isDoor = true
-                        break
-                    end
-                end
-                if not isDoor then
-                    buildPlank(startPlank, endPlank)
-                end
-            end
-        elseif zStart == zEnd then -- Jika tembok horizontal (sepanjang X)
-            for x = xStart, xEnd, plankSize.X + plankGap do
-                local startPlank = Vector3.new(x, currentHeight, zStart)
-                local endPlank = Vector3.new(x + plankSize.X, currentHeight, zStart)
-                -- Cek apakah plank berada di area pintu
-                local isDoor = false
-                for _, door in ipairs(doorPositions[i] or {}) do
-                    if x >= door.X - doorSize.X / 2 and x <= door.X + doorSize.X / 2 and currentHeight <= baseHeight + doorSize.Y then
-                        isDoor = true
-                        break
-                    end
-                end
-                if not isDoor then
-                    buildPlank(startPlank, endPlank)
-                end
-            end
-        end
-    end
-end
-
--- Hitung posisi sudut rumah
-local corners = {
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z - wallDistance), 
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z - wallDistance), 
-    Vector3.new(startPosition.X + wallDistance, baseHeight, startPosition.Z + wallDistance), 
-    Vector3.new(startPosition.X - wallDistance, baseHeight, startPosition.Z + wallDistance)  
-}
-
--- Tentukan posisi pintu
-local doorPositions = {
-    { Vector3.new(corners[1].X, baseHeight, (corners[1].Z + corners[2].Z) / 2) }, 
-    { Vector3.new((corners[2].X + corners[3].X) / 2, baseHeight, corners[2].Z) }, 
-    {}, 
-    {}  
-}
-
--- Bangun tembok dari atas ke bawah
-local currentHeight = baseHeight + wallHeight 
-while currentHeight >= baseHeight do
-    buildWallLevel(corners, currentHeight, doorPositions)
-    currentHeight = currentHeight - heightIncrement
-    wait(0.1) 
-end
-
--- Fungsi untuk membangun lantai atau atap
-local function buildFloorOrRoof(corner1, corner2, height)
-    local xStart = math.min(corner1.X, corner2.X)
-    local xEnd = math.max(corner1.X, corner2.X)
-    local zStart = math.min(corner1.Z, corner2.Z)
-    local zEnd = math.max(corner1.Z, corner2.Z)
-
-    for x = xStart, xEnd, plankSize.X + plankGap do
-        for z = zStart, zEnd, plankSize.Z + plankGap do
-            local startPlank = Vector3.new(x, height, z)
-            local endPlank = Vector3.new(x + plankSize.X, height, z + plankSize.Z)
-            buildPlank(startPlank, endPlank)
-        end
-        wait(0.1)
-    end
-end
-
--- Bangun atap
-buildFloorOrRoof(corners[1], corners[3], baseHeight + wallHeight + 1)
-
--- Bangun lantai lebih rendah
-buildFloorOrRoof(corners[1], corners[3], baseHeight - 0.5)
-print("done")
-        end
-}
 )
-local Button = Tab:CreateButton({
-    Name = "print abcd",
-    Callback = function()
-    print("abcd")
-    end,
- })
- local Button = Tab:CreateButton({
-    Name = "print ------------------------",
-    Callback = function()
-    print("------------------------")
-    end,
- })
+local Button =
+    Tab:CreateButton(
+    {
+        Name = "print ------------------------",
+        Callback = function()
+            print("------------------------")
+        end
+    }
+)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
+local WebhookURL =
+    "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
 local FolderPath = "eyiagbyh"
 local FilePath = FolderPath .. "/fbycoldowneu"
 
@@ -2932,51 +2770,52 @@ end
 -- Fungsi untuk mengirim webhook dengan berbagai metode request
 local function sendWebhook(data)
     local JSONData = HttpService:JSONEncode(data)
-    local Headers = { ["Content-Type"] = "application/json" }
+    local Headers = {["Content-Type"] = "application/json"}
 
     if syn and syn.request then
-        syn.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+        syn.request({Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData})
     elseif request then
-        request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+        request({Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData})
     elseif http_request then
-        http_request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+        http_request({Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData})
     elseif fluxus and fluxus.request then
-        fluxus.request({ Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData })
+        fluxus.request({Url = WebhookURL, Method = "POST", Headers = Headers, Body = JSONData})
     else
-        warn("Executor tidak mendukung request HTTP!")
+        warn("Executor not support HTTP!")
     end
 end
 
 -- GUI Input Callback
-local Input = Tab:CreateInput({
-    Name = "Type here for suggestions or anything, don't spam!",
-    CurrentValue = "",
-    PlaceholderText = "Input Placeholder",
-    RemoveTextAfterFocusLost = false,
-    Flag = "Input1",
-    Callback = function(Text)
-        if Text and Text ~= "" then
-            local currentTime = os.time()
-            local lastCooldown = readCooldown()
+local Input =
+    Tab:CreateInput(
+    {
+        Name = "Type here for suggestions or anything, don't spam!",
+        CurrentValue = "",
+        PlaceholderText = "Input Placeholder",
+        RemoveTextAfterFocusLost = false,
+        Flag = "Input12",
+        Callback = function(Text)
+            if Text and Text ~= "" then
+                local currentTime = os.time()
+                local lastCooldown = readCooldown()
 
-            if currentTime < lastCooldown then
-                warn("On Coldown Chill")
-                return
+                if currentTime < lastCooldown then
+                    warn("On Coldown")
+                    return
+                end
+
+                warn("Wait 10 s for send again")
+                task.wait(10) -- Delay 10 detik
+
+                local Data = {
+                    ["content"] = "**Message:** " ..
+                        Text .. "\n**Username:** " .. LocalPlayer.Name .. "\n**UserId:** " .. LocalPlayer.UserId
+                }
+                sendWebhook(Data)
+
+                -- Simpan cooldown baru (sekarang + 10 detik)
+                writeCooldown(currentTime + 10)
             end
-
-            warn("Wait 10 s for send again")
-            task.wait(10) -- Delay 10 detik
-
-            local Data = {
-                ["content"] = "**Message:** " .. Text ..
-                              "\n**Username:** " .. LocalPlayer.Name ..
-                              "\n**UserId:** " .. LocalPlayer.UserId
-            }
-            sendWebhook(Data)
-
-            -- Simpan cooldown baru (sekarang + 10 detik)
-            writeCooldown(currentTime + 10)
         end
-    end,
-})
-
+    }
+)
