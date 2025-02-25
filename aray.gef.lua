@@ -2694,11 +2694,15 @@ Tab:CreateButton(
 )
 
 local Tab = Window:CreateTab("Autobuilding", "hammer")
--- Membuat tombol pertama untuk 'house_one'
-local houseOneButton = Tab:CreateButton({
-    Name = "House One",
-    Interact = "Click",
-    Callback = function()
+local houseOptions = {
+    "None", -- Tambahkan opsi None agar tidak langsung memuat skrip
+    "House One",
+    "Large House One"
+}
+
+-- Fungsi untuk memuat skrip berdasarkan pilihan dropdown
+local function loadHouseScript(houseName)
+    if houseName == "House One" then
         print("Loading House One...")
         local success, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/houseone"))()
@@ -2706,14 +2710,7 @@ local houseOneButton = Tab:CreateButton({
         if not success then
             warn("Failed to load House One: " .. tostring(err))
         end
-    end
-})
-
--- Membuat tombol kedua untuk 'large house one'
-local largeHouseButton = Tab:CreateButton({
-    Name = "Large House One",
-    Interact = "Click",
-    Callback = function()
+    elseif houseName == "Large House One" then
         print("Loading Large House One...")
         local success, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/largehouse"))()
@@ -2722,25 +2719,21 @@ local largeHouseButton = Tab:CreateButton({
             warn("Failed to load Large House One: " .. tostring(err))
         end
     end
+end
+
+-- Dropdown untuk memilih dan menjalankan skrip rumah
+Tab:CreateDropdown({
+    Name = "Select House",
+    Options = houseOptions,
+    CurrentOption = {"None"}, -- Default None
+    MultipleOptions = false,
+    Flag = "HouseDropdown",
+    Callback = function(Options)
+        if Options[1] and Options[1] ~= "None" then
+            loadHouseScript(Options[1]) -- Jalankan skrip sesuai pilihan dropdown
+        end
+    end
 })
-local Button =
-    Tab:CreateButton(
-    {
-        Name = "print abcd",
-        Callback = function()
-            print("abcd")
-        end
-    }
-)
-local Button =
-    Tab:CreateButton(
-    {
-        Name = "print ------------------------",
-        Callback = function()
-            print("------------------------")
-        end
-    }
-)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
