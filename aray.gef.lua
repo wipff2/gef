@@ -43,47 +43,6 @@ local Label =
     Color3.fromRGB(255, 255, 255),
     false
 )
-local HttpService = game:GetService("HttpService")
-local scriptURL = "https://raw.githubusercontent.com/nAlwspa/arrayfield/refs/heads/main/fef"
-local scriptCode = string.format("loadstring(game:HttpGet('%s'))()", scriptURL)
-
--- Fungsi untuk menyalin ke clipboard (berfungsi di executor tertentu)
-local function CopyToClipboard(text)
-    if setclipboard then
-        setclipboard(text)
-    elseif toclipboard then
-        toclipboard(text)
-    elseif syn and syn.write_clipboard then
-        syn.write_clipboard(text)
-    else
-        warn("Clipboard function not supported")
-    end
-end
-
--- Button untuk menyalin kode
-local Button = Tab:CreateButton({
-    Name = "Copy Loadstring",
-    Callback = function()
-        CopyToClipboard(scriptCode)
-    end
-})
-
--- Input untuk mengupdate loadstring
-local Input = Tab:CreateInput({
-    Name = "Script",
-    CurrentValue = scriptURL,
-    PlaceholderText = "Enter new URL",
-    RemoveTextAfterFocusLost = false,
-    Flag = "Input1",
-    Callback = function(Text)
-        scriptURL = Text
-        scriptCode = string.format("loadstring(game:HttpGet('%s'))()", scriptURL)
-    end
-})
-
--- Contoh cara mengubah teks input dari kode
-Input:Set(scriptCode)
--- Membuat Section untuk metode teleport
 local Section = Tab:CreateSection("TP Method", true)
 
 -- Daftar nama tools
