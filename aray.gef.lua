@@ -672,16 +672,16 @@ Tab:CreateButton(
 )
 local Section = Tab:CreateSection("buy", true)
 local isScanning = false -- Status toggle
-local itemButtons = {} -- Menyimpan tombol yang sudah dibuat
-local connection  -- Menyimpan event untuk pemantauan real-time
+local availableItems = {} -- Menyimpan daftar item yang tersedia
+local connection -- Menyimpan event untuk pemantauan real-time
 
-local function autoBuyItem(item)
-    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(item)
-    print("Buy ", item.Name)
+local function autoBuyItem(itemName)
+    game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(itemName)
+    print("Buy ", itemName)
 end
 
--- Fungsi untuk memperbarui daftar tombol berdasarkan item yang ada
-local function updateButtons()
+-- Fungsi untuk memperbarui daftar dropdown berdasarkan item yang ada
+local function updateDropdown()
     local foundItems = {}
 
     for _, building in ipairs(workspace.Buildings:GetChildren()) do
@@ -698,56 +698,52 @@ local function updateButtons()
                     if item:IsA("ValueBase") then
                         local itemName = item.Name
                         local itemPrice = item.Value
-                        local buttonKey = itemName -- Kunci unik berdasarkan nama item
+                        local formattedName = string.format("[%s]:[%s]", itemName, tostring(itemPrice))
 
-                        -- Jika tombol belum dibuat, buat tombol baru
-                        if not itemButtons[buttonKey] then
-                            itemButtons[buttonKey] =
-                                Tab:CreateButton(
-                                {
-                                    Name = string.format("[%s]:[%s]", itemName, tostring(itemPrice)),
-                                    Callback = function()
-                                        autoBuyItem(item)
-                                    end
-                                }
-                            )
+                        if not foundItems[formattedName] then
+                            table.insert(availableItems, formattedName)
+                            foundItems[formattedName] = true
                         end
-                        foundItems[buttonKey] = true
                     end
                 end
             end
         end
     end
 
-    -- Hapus tombol yang tidak lagi memiliki item di toko
-    for key, button in pairs(itemButtons) do
-        if not foundItems[key] then
-            itemButtons[key] = nil -- Hapus referensi tombol
+    -- Perbarui dropdown dengan daftar item yang ditemukan
+    Tab:CreateDropdown({
+        Name = "Select Item to Buy",
+        Options = availableItems,
+        CurrentOption = {"None"}, -- Default None
+        MultipleOptions = false,
+        Flag = "ShopDropdown",
+        Callback = function(Options)
+            if Options[1] and Options[1] ~= "None" then
+                local itemName = Options[1]:match("%[(.-)%]:") -- Ambil nama item dari format
+                if itemName then
+                    autoBuyItem(itemName) -- Beli item
+                end
+            end
         end
-    end
+    })
 end
 
 -- Fungsi untuk memulai pemindaian real-time
 local function startScanning()
-    updateButtons() -- Perbarui tombol awal
+    updateDropdown() -- Perbarui dropdown awal
 
     -- Event untuk mendeteksi perubahan di workspace secara langsung
-    connection =
-        workspace.DescendantAdded:Connect(
-        function(obj)
-            if obj:IsA("ValueBase") then
-                updateButtons()
-            end
+    connection = workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateDropdown()
         end
-    )
+    end)
 
-    workspace.DescendantRemoving:Connect(
-        function(obj)
-            if obj:IsA("ValueBase") then
-                updateButtons()
-            end
+    workspace.DescendantRemoving:Connect(function(obj)
+        if obj:IsA("ValueBase") then
+            updateDropdown()
         end
-    )
+    end)
 end
 
 -- Fungsi untuk menghentikan pemindaian
@@ -759,20 +755,18 @@ local function stopScanning()
 end
 
 -- Membuat Toggle
-Tab:CreateToggle(
-    {
-        Name = "On/off Shop",
-        Default = false,
-        Callback = function(state)
-            isScanning = state -- Mengatur status toggle
-            if isScanning then
-                startScanning()
-            else
-                stopScanning()
-            end
+Tab:CreateToggle({
+    Name = "On/Off Shop",
+    Default = false,
+    Callback = function(state)
+        isScanning = state -- Mengatur status toggle
+        if isScanning then
+            startScanning()
+        else
+            stopScanning()
         end
-    }
-)
+    end,
+})
 local Tab = Window:CreateTab("Players", "users-round")
 local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")

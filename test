@@ -712,6 +712,7 @@ Tab:CreateButton(
     }
 )
 local Section = Tab:CreateSection("buy", true) local isScanning = false -- Status toggle
+local isScanning = false -- Status toggle
 local availableItems = {} -- Menyimpan daftar item yang tersedia
 local connection -- Menyimpan event untuk pemantauan real-time
 
@@ -808,6 +809,128 @@ Tab:CreateToggle({
     end,
 })
 local Tab = Window:CreateTab("Players", "users-round")
+local Button = Tab:CreateButton({
+    Name = "kill our self character",
+    Callback = function()
+       local player = game.Players.LocalPlayer
+       if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+          player.Character.Humanoid.Health = 0
+       end
+    end,
+ })
+ local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local noclipConnection
+
+local function Noclip()
+    noclipConnection = RunService.Stepped:Connect(function()
+        if character then
+            for _, child in pairs(character:GetDescendants()) do
+                if child:IsA("BasePart") and child.CanCollide == true then
+                    child.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function Unnoclip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+    end
+    if character then
+        local lowerTorso = character:FindFirstChild("LowerTorso")
+        local upperTorso = character:FindFirstChild("UpperTorso")
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+        if lowerTorso then lowerTorso.CanCollide = true end
+        if upperTorso then upperTorso.CanCollide = true end
+        if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+    end
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(Value)
+      if Value then
+         Noclip()
+      else
+         Unnoclip()
+      end
+   end,
+})
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+local speed = 16 -- Default speed
+local speedLoopEnabled = false
+local speedLoopConnection
+
+local function SetSpeed(value)
+    if humanoid then
+        humanoid.WalkSpeed = value
+    end
+end
+
+local function SpeedOn()
+    if not speedLoopEnabled then
+        speedLoopEnabled = true
+        SetSpeed(speed)
+        speedLoopConnection = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if humanoid.WalkSpeed ~= speed then
+                humanoid.WalkSpeed = speed
+            end
+        end)
+    end
+end
+
+local function SpeedOff()
+    if speedLoopEnabled then
+        speedLoopEnabled = false
+        if speedLoopConnection then
+            speedLoopConnection:Disconnect()
+            speedLoopConnection = nil
+        end
+        humanoid.WalkSpeed = 16 -- Kembali ke kecepatan default
+    end
+end
+
+local ToggleSpeed = Tab:CreateToggle({
+   Name = "Speed Toggle",
+   CurrentValue = false,
+   Flag = "SpeedToggle",
+   Callback = function(Value)
+      if Value then
+         SpeedOn()
+      else
+         SpeedOff()
+      end
+   end,
+})
+
+local SpeedInput = Tab:CreateInput({
+   Name = "Set Speed",
+   CurrentValue = tostring(speed),
+   PlaceholderText = "Masukkan Kecepatan",
+   RemoveTextAfterFocusLost = false,
+   Flag = "SpeedInput",
+   Callback = function(Text)
+      local newSpeed = tonumber(Text)
+      if newSpeed and newSpeed > 0 then
+         speed = newSpeed
+         if speedLoopEnabled then
+            SetSpeed(speed)
+         end
+      end
+   end,
+})
+
 local Section = Tab:CreateSection("Players")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -923,149 +1046,6 @@ local gefToggle =
         end
     }
 )
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local speaker = Players.LocalPlayer
-local Character = speaker.Character or speaker.CharacterAdded:Wait()
-
-local Clip = true
-local Noclipping = nil
-local floatName = "HumanoidRootPart" -- Bagian yang tetap tidak bertabrakan
-
--- Fungsi untuk menonaktifkan Noclip (kembali normal)
-local function Unnoclip()
-    if Noclipping then
-        Noclipping:Disconnect()
-        Noclipping = nil
-    end
-    Clip = true
-
-    -- Kembalikan CanCollide ke kondisi semula (tidak bisa menembus)
-    if Character then
-        for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= floatName then
-                part.CanCollide = false -- Jika Collide false, maka Noclip nonaktif
-            end
-        end
-    end
-end
-
--- Fungsi untuk menjalankan loop Noclip
-local function NoclipLoop()
-    if not Clip and Character then
-        for _, child in pairs(Character:GetDescendants()) do
-            if child:IsA("BasePart") and not child.CanCollide and child.Name ~= floatName then
-                child.CanCollide = true -- Jika Collide true, maka Noclip aktif
-            end
-        end
-    end
-end
-
--- Fungsi untuk mengaktifkan atau menonaktifkan Noclip
-local function ToggleNoclip(State)
-    Unnoclip() -- Pastikan Noclip mati sebelum diaktifkan lagi
-
-    if State then
-        Clip = false
-        Noclipping = RunService.Stepped:Connect(NoclipLoop)
-    end
-end
-
--- Toggle UI untuk Noclip
-Tab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Flag = "NoclipToggle",
-    Callback = function(Value)
-        ToggleNoclip(Value)
-    end,
-})
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
-local speaker = Players.LocalPlayer
-local Character = speaker.Character or speaker.CharacterAdded:Wait()
-local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-
--- Ambil nilai default pemain
-local DefaultSpeed = Humanoid.WalkSpeed
-local DefaultJumpPower = Humanoid.JumpPower
-local DefaultGravity = Workspace.Gravity
-
--- Variabel untuk menyimpan nilai input
-local SpeedValue, JumpPowerValue, GravityValue = DefaultSpeed, DefaultJumpPower, DefaultGravity
-local Modifying = false
-local Connection
-
--- Input untuk mengatur Speed
-local SpeedInput = Tab:CreateInput({
-    Name = "Speed",
-    CurrentValue = tostring(DefaultSpeed),
-    PlaceholderText = "Masukkan Speed",
-    RemoveTextAfterFocusLost = false,
-    Flag = "SpeedInput",
-    Callback = function(Text)
-        SpeedValue = tonumber(Text) or DefaultSpeed
-    end,
-})
-
--- Input untuk mengatur JumpPower
-local JumpPowerInput = Tab:CreateInput({
-    Name = "JumpPower",
-    CurrentValue = tostring(DefaultJumpPower),
-    PlaceholderText = "Masukkan JumpPower",
-    RemoveTextAfterFocusLost = false,
-    Flag = "JumpPowerInput",
-    Callback = function(Text)
-        JumpPowerValue = tonumber(Text) or DefaultJumpPower
-    end,
-})
-
--- Input untuk mengatur Gravity
-local GravityInput = Tab:CreateInput({
-    Name = "Gravity",
-    CurrentValue = tostring(DefaultGravity),
-    PlaceholderText = "Masukkan Gravity",
-    RemoveTextAfterFocusLost = false,
-    Flag = "GravityInput",
-    Callback = function(Text)
-        GravityValue = tonumber(Text) or DefaultGravity
-    end,
-})
-
--- Toggle untuk mengaktifkan loop perubahan nilai
-local Toggle = Tab:CreateToggle({
-    Name = "Modify Stats",
-    CurrentValue = false,
-    Flag = "ModifyStatsToggle",
-    Callback = function(Value)
-        Modifying = Value
-
-        if Modifying then
-            -- Loop untuk menerapkan nilai secara real-time
-            Connection = RunService.Stepped:Connect(function()
-                if Humanoid then
-                    Humanoid.WalkSpeed = SpeedValue
-                    Humanoid.JumpPower = JumpPowerValue
-                end
-                Workspace.Gravity = GravityValue
-            end)
-        else
-            -- Kembalikan ke nilai default saat toggle dimatikan
-            if Connection then
-                Connection:Disconnect()
-                Connection = nil
-            end
-            if Humanoid then
-                Humanoid.WalkSpeed = DefaultSpeed
-                Humanoid.JumpPower = DefaultJumpPower
-            end
-            Workspace.Gravity = DefaultGravity
-        end
-    end,
-})
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -2159,20 +2139,23 @@ local Toggle = Tab:CreateToggle({
         end
     end,
  })
- local Section = Tab:CreateSection("Gef esp")
-local ESPEnabled = {Tiny = false, Mini = false, Big = false} -- Status toggle ESP
-local ESPConnections = {} -- Menyimpan koneksi untuk pembaruan
-local player = game.Players.LocalPlayer
-
+local Section = Tab:CreateSection("Gef esp")
+-- Inisialisasi
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local espMiniGEFEnabled = false
-local espTinyGEFEnabled = false
+-- Variabel untuk menyimpan status ESP dan koneksi
+local ESPEnabled = {
+    MiniGEF = false,
+    TinyGEF = false,
+    BigGEF = false
+}
+local ESPConnections = {}
 local activeESP = {
     MiniGEF = {},
-    TinyGEF = {}
+    TinyGEF = {},
+    BigGEF = {}
 }
 
 -- Utility Function: Menghitung jarak
@@ -2182,16 +2165,13 @@ local function getDistance(position)
     if humanoidRootPart then
         return (humanoidRootPart.Position - position).Magnitude
     end
-    return math.huge -- Jika tidak ada karakter, kembalikan jarak maksimum
+    return math.huge
 end
 
--- Utility Function: Membuat ESP
+-- Utility Function: Membuat atau memperbarui ESP
 local function createESP(object, text, color, category)
-    if not object or not category then
-        return
-    end
+    if not object or not category then return end
 
-    -- Cek apakah BillboardGui sudah ada
     local billboard = object:FindFirstChild("ESP_Billboard")
     if not billboard then
         billboard = Instance.new("BillboardGui")
@@ -2205,28 +2185,24 @@ local function createESP(object, text, color, category)
         textLabel.Name = "ESP_Label"
         textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.BackgroundTransparency = 1
-        textLabel.TextColor3 = color
         textLabel.TextScaled = true
+        textLabel.TextColor3 = color
 
         billboard.Parent = object
     end
 
-    -- Perbarui teks dan warna
     local label = billboard:FindFirstChild("ESP_Label")
     if label then
         label.Text = text
         label.TextColor3 = color
     end
 
-    -- Simpan ke daftar ESP aktif
     table.insert(activeESP[category], billboard)
 end
 
 -- Fungsi untuk menghapus ESP berdasarkan kategori
 local function clearESPByCategory(category)
-    if not activeESP[category] then
-        return
-    end
+    if not activeESP[category] then return end
     for _, billboard in ipairs(activeESP[category]) do
         if billboard and billboard.Parent then
             billboard:Destroy()
@@ -2235,8 +2211,8 @@ local function clearESPByCategory(category)
     activeESP[category] = {}
 end
 
--- Fungsi untuk memperbarui ESP untuk model tertentu
-local function updateModelESP(modelName, category, isEnabled)
+-- Fungsi untuk memperbarui ESP pada model tertentu
+local function updateModelESP(modelName, category, hitboxPart, isEnabled)
     if not isEnabled then
         clearESPByCategory(category)
         return
@@ -2244,20 +2220,18 @@ local function updateModelESP(modelName, category, isEnabled)
 
     local gefs = workspace:FindFirstChild("GEFs")
     if not gefs then
-        warn("not found")
+        warn("GEFs not found")
         return
     end
 
     for _, model in ipairs(gefs:GetChildren()) do
         if model:IsA("Model") and model.Name == modelName then
-            local head = model:FindFirstChild("Head")
+            local hitbox = model:FindFirstChild(hitboxPart)
             local health = model:FindFirstChild("Health")
-
-            if head and health and head:IsA("MeshPart") and health:IsA("NumberValue") then
+            if hitbox and health and health:IsA("NumberValue") then
                 local healthValue = health.Value
-                local distance = getDistance(head.Position)
+                local distance = getDistance(hitbox.Position)
 
-                -- Tentukan warna berdasarkan nilai kesehatan
                 local color = Color3.new(0, 1, 0) -- Hijau
                 if healthValue < 10 then
                     color = Color3.new(1, 0, 0) -- Merah
@@ -2265,166 +2239,49 @@ local function updateModelESP(modelName, category, isEnabled)
                     color = Color3.new(1, 0.5, 0) -- Oranye
                 end
 
-                -- Buat atau perbarui ESP
-                createESP(
-                    head,
-                    modelName .. "\nHealth: " .. healthValue .. "\nDistance: " .. math.floor(distance),
-                    color,
-                    category
-                )
+                createESP(hitbox, modelName .. "\nHealth: " .. healthValue .. "\nDistance: " .. math.floor(distance), color, category)
             end
         end
     end
 end
 
 -- Toggle untuk ESP Mini GEF
-Tab:CreateToggle(
-    {
-        Name = "ESP Mini GEF",
-        CurrentValue = false,
-        Flag = "MiniGEFESP",
-        Callback = function(value)
-            espMiniGEFEnabled = value
-            if value then
-                
-            end
-        end
-    }
-)
+Tab:CreateToggle({
+    Name = "ESP Mini GEF",
+    CurrentValue = false,
+    Flag = "MiniGEFESP",
+    Callback = function(value)
+        ESPEnabled.MiniGEF = value
+    end
+})
 
 -- Toggle untuk ESP Tiny GEF
-Tab:CreateToggle(
-    {
-        Name = "ESP Tiny GEF",
-        CurrentValue = false,
-        Flag = "TinyGEFESP",
-        Callback = function(value)
-            espTinyGEFEnabled = value
-            if value then
-                
-            end
-        end
-    }
-)
+Tab:CreateToggle({
+    Name = "ESP Tiny GEF",
+    CurrentValue = false,
+    Flag = "TinyGEFESP",
+    Callback = function(value)
+        ESPEnabled.TinyGEF = value
+    end
+})
+
+-- Toggle untuk ESP Big GEF
+Tab:CreateToggle({
+    Name = "ESP Big GEF",
+    CurrentValue = false,
+    Flag = "BigGEFESP",
+    Callback = function(value)
+        ESPEnabled.BigGEF = value
+    end
+})
 
 -- Loop untuk memperbarui ESP
-RunService.RenderStepped:Connect(
-    function()
-        if espMiniGEFEnabled then
-            updateModelESP("Mini GEF", "MiniGEF", true)
-        else
-            updateModelESP("Mini GEF", "MiniGEF", false)
-        end
+RunService.RenderStepped:Connect(function()
+    updateModelESP("Mini GEF", "MiniGEF", "Head", ESPEnabled.MiniGEF)
+    updateModelESP("Tiny GEF", "TinyGEF", "Head", ESPEnabled.TinyGEF)
+    updateModelESP("Big GEF", "BigGEF", "RootPart.ShatterHitbox", ESPEnabled.BigGEF)
+end)
 
-        if espTinyGEFEnabled then
-            updateModelESP("Tiny GEF", "TinyGEF", true)
-        else
-            updateModelESP("Tiny GEF", "TinyGEF", false)
-        end
-    end
-)
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Variabel untuk menyimpan status ESP dan koneksi
-local ESPEnabled = {
-    GEF = false
-}
-local ESPConnections = {}
-
--- Utility Function: Menghitung jarak
-local function getDistance(position)
-    local character = LocalPlayer.Character
-    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        return (humanoidRootPart.Position - position).Magnitude
-    end
-    return math.huge -- Jika tidak ada karakter, kembalikan jarak maksimum
-end
-
--- Utility Function: Membuat atau memperbarui ESP
-local function updateESP(object, title, health, distance)
-    if not object then
-        return
-    end
-
-    -- Cek apakah BillboardGui sudah ada
-    local billboard = object:FindFirstChild("ESP_Billboard")
-    if not billboard then
-        billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Billboard"
-        billboard.Size = UDim2.new(0, 200, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)
-        billboard.Adornee = object
-        billboard.AlwaysOnTop = true
-
-        local textLabel = Instance.new("TextLabel", billboard)
-        textLabel.Name = "ESP_Label"
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextScaled = true
-        textLabel.TextColor3 = Color3.new(0, 1, 0) -- Default hijau
-
-        billboard.Parent = object
-    end
-
-    -- Perbarui teks dan warna berdasarkan kesehatan
-    local label = billboard:FindFirstChild("ESP_Label")
-    if label then
-        local color = Color3.new(0, 1, 0) -- Hijau
-        if health < 10 then
-            color = Color3.new(1, 0, 0) -- Merah
-        elseif health < 60 then
-            color = Color3.new(1, 0.5, 0) -- Oranye
-        end
-
-        label.Text = title .. "\nHealth: " .. health .. "\nDistance: " .. math.floor(distance)
-        label.TextColor3 = color
-    end
-end
-
--- Fungsi untuk menangani ESP GEF
-local function updateGEFESP()
-    local gef = workspace:FindFirstChild("GEF")
-    if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") and gef:FindFirstChild("Health") then
-        local hitbox = gef.RootPart.Hitbox
-        local health = gef.Health.Value
-        local distance = getDistance(hitbox.Position)
-        updateESP(hitbox, "GEF", health, distance)
-    end
-end
-
--- Membuat Toggle untuk GEF ESP
-Tab:CreateToggle(
-    {
-        Name = "ESP GEF",
-        CurrentValue = false,
-        Flag = "ESP_GEF",
-        Callback = function(value)
-            ESPEnabled.GEF = value
-            if value then
-                -- Sambungkan ke Heartbeat untuk memperbarui ESP
-                ESPConnections.GEF = RunService.Heartbeat:Connect(updateGEFESP)
-            else
-                -- Hapus koneksi jika toggle dimatikan
-                if ESPConnections.GEF then
-                    ESPConnections.GEF:Disconnect()
-                    ESPConnections.GEF = nil
-                end
-                -- Hapus ESP dari GEF jika ada
-                local gef = workspace:FindFirstChild("GEF")
-                if gef and gef:FindFirstChild("RootPart") and gef.RootPart:FindFirstChild("Hitbox") then
-                    local esp = gef.RootPart.Hitbox:FindFirstChild("ESP_Billboard")
-                    if esp then
-                        esp:Destroy()
-                    end
-                end
-            end
-        end
-    }
-)
 local Section = Tab:CreateSection("Building")
 local espList = {} -- Simpan semua ESP yang dibuat
 
@@ -2650,183 +2507,114 @@ Tab:CreateButton(
                 for _, child in ipairs(treesNo:GetChildren()) do
                     child:Destroy()
                 end
-                print("Trees Clear.")
+                
             end
         end
     }
-)
-local HttpService = game:GetService("HttpService")
+) 
+local Section = Tab:CreateSection("stats")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local WebhookURL = "https://discord.com/api/webhooks/1251060163398467625/zLMibUZzFIdx_ZsAr-dBT1DFbp3K4w1Q0qFvrunDzlsiuEzbE-tlmqoync5eh_Qhjl9h"
-local FolderPath = "eyiagbyh"
-local FilePath = FolderPath .. "/fbycoldowneu"
+-- Variabel global untuk toggle
+isStatsActive = false
 
-local function readCooldown()
-    return isfile(FilePath) and tonumber(readfile(FilePath)) or 0
-end
+-- Buat paragraf untuk menampilkan informasi
+local Paragraph = Tab:CreateParagraph({Title = "Stats Info", Content = "waiting data/toggle on..."})
 
-local function writeCooldown(timestamp)
-    if not isfolder(FolderPath) then makefolder(FolderPath) end
-    writefile(FilePath, tostring(timestamp))
-end
-
-local function sendWebhook(data)
-    local success, JSONData = pcall(function()
-        return HttpService:JSONEncode(data)
-    end)
-
-    if not success then
-        warn("Failed to encode JSON data!")
-        return
-    end
-
-    local Headers = { ["Content-Type"] = "application/json" }
-    local requestFunction = syn and syn.request or request or http_request or (fluxus and fluxus.request)
-
-    if requestFunction then
-        local response = requestFunction({
-            Url = WebhookURL,
-            Method = "POST",
-            Headers = Headers,
-            Body = JSONData
+-- Fungsi untuk memperbarui paragraf
+local function updateParagraph()
+    if not isStatsActive then return end -- Jika toggle mati, hentikan pembaruan
+    
+    local upgrades = LocalPlayer:FindFirstChild("Upgrades")
+    local stats = LocalPlayer:FindFirstChild("Stats")
+    local character = LocalPlayer.Character
+    local workspaceStats = workspace:FindFirstChild("knkfforvault2")
+    local serverSettings = ReplicatedStorage:FindFirstChild("ServerSettings")
+    local gefRoot = workspace:FindFirstChild("GEF")
+    
+    if upgrades and stats and workspaceStats and serverSettings then
+        local bullets = workspaceStats.Ammo.Bullets.Value or "nil"
+        local days = workspaceStats.Stats.Days.Value or "nil"
+        local difficulty = workspaceStats.Vars.Difficulty.Value or "nil"
+        local energy = workspaceStats.Energy.Value or "nil"
+        local gefsKilled = workspaceStats.Stats.GefsKilled.Value or "nil"
+        local healthStatus = "Unknown"
+        local inventory = workspaceStats.Stats.Inventory.Value or "nil"
+        local maxStamina = upgrades.MaxStamina.Value or "nil"
+        local playtime = stats.Playtime.Value or "nil"
+        local shells = workspaceStats.Ammo.Shells.Value or "nil"
+        local staminaRegen = upgrades.StaminaRegen.Value or "nil"
+        local storage = upgrades.Storage.Value or "nil"
+        local timeSurvived = workspaceStats.Stats.TimeSurvived.Value or "nil"
+        
+        local dayValue = serverSettings.Day.Value
+        local timeStatus = dayValue and "Time is: Day" or "Time is: Night"
+        
+        -- Cek status hidup/mati karakter
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local health = humanoid.Health
+                healthStatus = health > 0 and "Alive" or "Dead"
+            end
+        end
+        
+        -- Cek keberadaan Big Gef
+        local bigGefStatus = "❌"
+        if gefRoot and gefRoot:FindFirstChild("RootPart") and gefRoot.RootPart:FindFirstChild("ShatterHitbox") then
+            bigGefStatus = "✅"
+        end
+        
+        -- Perbarui isi paragraf
+        Paragraph:Set({
+            Title = "Stats Info",
+            Content = "Big Gef: " .. bigGefStatus ..
+                "\nBullets: " .. bullets ..
+                "\nDays count: " .. days ..
+                "\nDifficulty: " .. difficulty ..
+                "\nEnergy: " .. energy ..
+                "\nGefs Killed: " .. gefsKilled ..
+                "\nHealth: " .. healthStatus ..
+                "\nInventory: " .. inventory ..
+                "\nMax Stamina lvl: " .. maxStamina ..
+                "\nPlaytime: " .. playtime ..
+                "\nShells: " .. shells ..
+                "\nStamina Regen lvl: " .. staminaRegen ..
+                "\nStorage lvl: " .. storage ..
+                "\nTime Survived: " .. timeSurvived ..
+                "\n" .. timeStatus
         })
-
-        if response and response.StatusCode == 200 then
-            warn("Webhook sent successfully!")
-        else
-            warn("Failed to send webhook! Status:", response and response.StatusCode or "Unknown")
-        end
     else
-        warn("Executor tidak mendukung request HTTP!")
+        Paragraph:Set({Title = "Stats Info", Content = "waiting"})
     end
 end
 
-local function createInputCallback()
-    return function(Text)
-        if Text and Text ~= "" then
-            local currentTime = os.time()
-            local lastCooldown = readCooldown()
+-- Event RenderStepped untuk pembaruan real-time
+local renderConnection
 
-            if currentTime < lastCooldown then
-                warn("On Cooldown, please wait!")
-                return
-            end
-
-            warn("Wait 10s before sending again")
-            task.wait(10)
-
-            sendWebhook({
-                content = string.format("**Message:** %s\n**Username:** %s\n**UserId:** %d", Text, LocalPlayer.Name, LocalPlayer.UserId)
-            })
-
-            writeCooldown(currentTime + 10)
-        end
-    end
-end
-
-local Input = Tab:CreateInput({
-    Name = "Type here for suggestions and detail or anything, don't spam!",
-    CurrentValue = "",
-    PlaceholderText = "Input here",
-    RemoveTextAfterFocusLost = false,
-    Flag = "Input1",
-    Callback = createInputCallback(),
-})
-local Section = Tab:CreateSection("Stats Player")
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local PlayerName = Character.Name
-local PlayerStatsPath = workspace:FindFirstChild(PlayerName)
-
-local StatsLabels = {}
-
-local function CheckShatterHitbox()
-    local GEF = workspace:FindFirstChild("GEF")
-    return GEF and GEF:FindFirstChild("RootPart") and GEF.RootPart:FindFirstChild("ShatterHitbox") and "✅" or "❌"
-end
-
-local function UpdateStats()
-    if not PlayerStatsPath then return end
-
-    local statsData = {
-        Storage = LocalPlayer.Upgrades.Storage and LocalPlayer.Upgrades.Storage.Value or "nil",
-        ["Stamina Regen"] = LocalPlayer.Upgrades.StaminaRegen and LocalPlayer.Upgrades.StaminaRegen.Value or "nil",
-        ["Max Stamina"] = LocalPlayer.Upgrades.MaxStamina and LocalPlayer.Upgrades.MaxStamina.Value or "nil",
-        Playtime = LocalPlayer.Stats.Playtime and LocalPlayer.Stats.Playtime.Value or "nil",
-        ["Your Inventory"] = PlayerStatsPath.Stats.Inventory and PlayerStatsPath.Stats.Inventory.Value or "nil",
-        ["Gefs Killed"] = PlayerStatsPath.Stats.GefsKilled and PlayerStatsPath.Stats.GefsKilled.Value or "nil",
-        ["Day/Night"] = PlayerStatsPath.Stats.Days and (PlayerStatsPath.Stats.Days.Value and "Day" or "Night") or "nil",
-        ["Time Survived"] = PlayerStatsPath.Stats.TimeSurvived and PlayerStatsPath.Stats.TimeSurvived.Value or "nil",
-        Difficulty = PlayerStatsPath.Vars.Difficulty and PlayerStatsPath.Vars.Difficulty.Value or "nil",
-        Energy = PlayerStatsPath.Energy and PlayerStatsPath.Energy.Value or "nil",
-        Health = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character.Humanoid.Health or "nil",
-        ["Current Position"] = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and tostring(LocalPlayer.Character.HumanoidRootPart.Position) or "nil",
-        ["Total Players"] = #Players:GetPlayers(),
-        ["Ammo Bullets"] = PlayerStatsPath.Ammo.Bullets and PlayerStatsPath.Ammo.Bullets.Value or "nil",
-        ["Ammo Shells"] = PlayerStatsPath.Ammo.Shells and PlayerStatsPath.Ammo.Shells.Value or "nil",
-        ["Is Gef Summon"] = CheckShatterHitbox()
-    }
-
-    for statName, value in pairs(statsData) do
-        if StatsLabels[statName] then
-            StatsLabels[statName]:Set(statName .. ": " .. tostring(value), 4483362458, Color3.fromRGB(255, 255, 255), true)
-        end
-    end
-end
-
-for statName, _ in pairs({
-    Storage = "",
-    ["Stamina Regen"] = "",
-    ["Max Stamina"] = "",
-    Playtime = "",
-    ["Your Inventory"] = "",
-    ["Gefs Killed"] = "",
-    ["Day/Night"] = "",
-    ["Time Survived"] = "",
-    Difficulty = "",
-    Energy = "",
-    Health = "",
-    ["Current Position"] = "",
-    ["Total Players"] = "",
-    ["Ammo Bullets"] = "",
-    ["Ammo Shells"] = "",
-    ["Is Gef Summon"] = ""
-}) do
-    StatsLabels[statName] = Tab:CreateLabel(statName .. ": Loading...", 4483362458, Color3.fromRGB(255, 255, 255), true)
-end
-
-local StatsEnabled = false
-local UpdateLoopRunning = false
-
-Tab:CreateToggle({
-    Name = "Enable Stats",
+-- Toggle untuk mengaktifkan atau menonaktifkan stats
+local Toggle = Tab:CreateToggle({
+    Name = "Aktifkan Stats",
     CurrentValue = false,
-    Flag = "StatsToggle",
-    Callback = function(Value)
-        StatsEnabled = Value
-        if StatsEnabled then
-            if not UpdateLoopRunning then
-                UpdateLoopRunning = true
-                task.spawn(function()
-                    while StatsEnabled do
-                        local success, err = pcall(UpdateStats)
-                        if not success then
-                            warn("Error in UpdateStats:", err)
-                        end
-                        task.wait(10) -- Perbarui setiap 10 detik
-                    end
-                    UpdateLoopRunning = false -- Hentikan loop saat toggle dimatikan
-                end)
+    Flag = "ToggleStats",
+    Callback = function(state)
+        isStatsActive = state
+        if isStatsActive then
+            if not renderConnection then
+                renderConnection = RunService.RenderStepped:Connect(updateParagraph)
             end
         else
-            for statName, label in pairs(StatsLabels) do
-                label:Set(statName .. ": Disabled", 4483362458, Color3.fromRGB(255, 255, 255), true)
+            if renderConnection then
+                renderConnection:Disconnect()
+                renderConnection = nil
             end
+            Paragraph:Set({Title = "Stats Info", Content = "waiting data/toggle on..."})
         end
-    end,
+    end
 })
-
 local Tab = Window:CreateTab("Autobuilding", "hammer")
 local houseOptions = {
     "None", -- Tambahkan opsi None agar tidak langsung memuat skrip
@@ -2841,16 +2629,40 @@ local function loadHouseScript(houseName)
         local success, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/houseone"))()
         end)
-        if not success then
-            warn("Failed to load House One: " .. tostring(err))
+        if success then
+            Rayfield:Notify({
+                Title = "Success",
+                Content = "House One loaded successfully!",
+                Duration = 6.5,
+                Image = 4483362458,
+            })
+        else
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "Failed to load House One: " .. tostring(err),
+                Duration = 6.5,
+                Image = 4483362458,
+            })
         end
     elseif houseName == "Large House One" then
         print("Loading Large House One...")
         local success, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/largehouse"))()
         end)
-        if not success then
-            warn("Failed to load Large House One: " .. tostring(err))
+        if success then
+            Rayfield:Notify({
+                Title = "Success",
+                Content = "Large House One loaded successfully!",
+                Duration = 6.5,
+                Image = 4483362458,
+            })
+        else
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "Failed to load Large House One: " .. tostring(err),
+                Duration = 6.5,
+                Image = 4483362458,
+            })
         end
     end
 end
