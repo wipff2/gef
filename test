@@ -711,63 +711,79 @@ Tab:CreateButton(
         end
     }
 )
-local Section = Tab:CreateSection("buy", true) local isScanning = false -- Status toggle
+local Section = Tab:CreateSection("buy", true)
 local isScanning = false -- Status toggle
 local availableItems = {} -- Menyimpan daftar item yang tersedia
 local connection -- Menyimpan event untuk pemantauan real-time
+local dropdown -- Menyimpan dropdown untuk diperbarui
+local debounce = false -- Mencegah pemanggilan updateDropdown secara berlebihan
 
+-- Fungsi membeli item
 local function autoBuyItem(itemName)
     game:GetService("ReplicatedStorage").Events.BuyItem:FireServer(itemName)
     print("Buy ", itemName)
 end
 
--- Fungsi untuk memperbarui daftar dropdown berdasarkan item yang ada
+-- Fungsi memperbarui daftar dropdown
 local function updateDropdown()
-    local foundItems = {}
+    if debounce then return end
+    debounce = true
 
-    for _, building in ipairs(workspace.Buildings:GetChildren()) do
-        if building:IsA("Model") and building:FindFirstChild("Nodes") then
-            local nodes = building:FindFirstChild("Nodes")
-            local room = nodes and nodes:FindFirstChild("Room")
-            local shop = room and room:FindFirstChild("Shop")
-            local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
-            local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
+    task.spawn(function()
+        local foundItems = {}
+        local newAvailableItems = {}
 
-            -- Jika ada folder item
-            if itemFolder then
-                for _, item in ipairs(itemFolder:GetChildren()) do
-                    if item:IsA("ValueBase") then
-                        local itemName = item.Name
-                        local itemPrice = item.Value
-                        local formattedName = string.format("[%s]:[%s]", itemName, tostring(itemPrice))
+        for _, building in ipairs(workspace.Buildings:GetChildren()) do
+            if building:IsA("Model") and building:FindFirstChild("Nodes") then
+                local nodes = building:FindFirstChild("Nodes")
+                local room = nodes and nodes:FindFirstChild("Room")
+                local shop = room and room:FindFirstChild("Shop")
+                local proximityPromptFolder = shop and shop:FindFirstChild("ProximityPrompt")
+                local itemFolder = proximityPromptFolder and proximityPromptFolder:FindFirstChild("Folder")
 
-                        if not foundItems[formattedName] then
-                            table.insert(availableItems, formattedName)
-                            foundItems[formattedName] = true
+                if itemFolder then
+                    for _, item in ipairs(itemFolder:GetChildren()) do
+                        if item:IsA("ValueBase") then
+                            local itemName = item.Name
+                            local itemPrice = item.Value
+                            local formattedName = string.format("[%s]:[%s]", itemName, tostring(itemPrice))
+
+                            if not foundItems[formattedName] then
+                                table.insert(newAvailableItems, formattedName)
+                                foundItems[formattedName] = true
+                            end
                         end
                     end
                 end
             end
         end
-    end
 
-    -- Perbarui dropdown dengan daftar item yang ditemukan
-    Tab:CreateDropdown({
-        Name = "Select Item to Buy",
-        Options = availableItems,
-        CurrentOption = {"None"}, -- Default None
-        MultipleOptions = false,
-        Flag = "ShopDropdown",
-        Callback = function(Options)
-            if Options[1] and Options[1] ~= "None" then
-                local itemName = Options[1]:match("%[(.-)%]:") -- Ambil nama item dari format
-                if itemName then
-                    autoBuyItem(itemName) -- Beli item
-                end
+        -- Perbarui dropdown jika ada perubahan dalam daftar item
+        if #newAvailableItems ~= #availableItems then
+            availableItems = newAvailableItems
+            dropdown:UpdateOptions(availableItems)
+        end
+
+        debounce = false
+    end)
+end
+
+-- Membuat Dropdown Sekali
+dropdown = Tab:CreateDropdown({
+    Name = "Select Item to Buy",
+    Options = {},
+    CurrentOption = {"None"},
+    MultipleOptions = false,
+    Flag = "ShopDropdown",
+    Callback = function(Options)
+        if Options[1] and Options[1] ~= "None" then
+            local itemName = Options[1]:match("%[(.-)%]:") -- Ambil nama item
+            if itemName then
+                autoBuyItem(itemName)
             end
         end
-    })
-end
+    end
+})
 
 -- Fungsi untuk memulai pemindaian real-time
 local function startScanning()
