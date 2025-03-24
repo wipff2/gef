@@ -1305,141 +1305,99 @@ Tab:CreateToggle(
         end
     }
 )
+------
 local Section = Tab:CreateSection("Tools")
-local speaker = game.Players.LocalPlayer
-local currentToolSize = {}
-local currentGripPos = {}
 local toolNames = {"Bat", "Crowbar", "Crowbars"}
-local selectedSizeBat = 10 -- Default size untuk Bat
-local selectedSizeCrowbar = 10 -- Default size untuk Crowbar(s)
 
--- Fungsi untuk mendapatkan tool yang sedang di-hold
 local function getEquippedTool()
-    if speaker.Character then
-        for _, v in pairs(speaker.Character:GetChildren()) do
-            if v:IsA("Tool") and table.find(toolNames, v.Name) then
-                return v
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        for _, tool in pairs(character:GetChildren()) do
+            if tool:IsA("Tool") and table.find(toolNames, tool.Name) then
+                return tool
             end
         end
-    end
-    return nil
-end
-
-local function applyHitbox(tool, size)
-    if not tool or not tool:FindFirstChild("Handle") then
-        return
-    end
-
-    if not currentToolSize[tool] then
-        currentToolSize[tool] = tool.Handle.Size
-        currentGripPos[tool] = tool.GripPos
-    end
-
-    if not tool.Handle:FindFirstChild("SelectionBoxCreated") then
-        local a = Instance.new("SelectionBox")
-        a.Name = "SelectionBoxCreated"
-        a.Parent = tool.Handle
-        a.Adornee = tool.Handle
-    end
-
-    tool.Handle.Massless = true
-    tool.Handle.Size = Vector3.new(size, size, size)
-    tool.GripPos = Vector3.new(0, 0, 2)
-    speaker.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
-end
-
-local function removeHitbox(tool)
-    if not tool or not tool:FindFirstChild("Handle") then
-        return
-    end
-
-    if currentToolSize[tool] then
-        tool.Handle.Size = currentToolSize[tool]
-        tool.GripPos = currentGripPos[tool]
-        currentToolSize[tool] = nil
-        currentGripPos[tool] = nil
-    end
-
-    if tool.Handle:FindFirstChild("SelectionBoxCreated") then
-        tool.Handle.SelectionBoxCreated:Destroy()
     end
 end
 
-local ToggleBat =
-    Tab:CreateToggle(
-    {
-        Name = "Hitbox Bat",
-        CurrentValue = false,
-        Flag = "Toggle11",
-        Callback = function(Value)
-            local tool = getEquippedTool()
-            if tool and tool.Name == "Bat" then
-                if Value then
-                    applyHitbox(tool, selectedSizeBat)
-                else
-                    removeHitbox(tool)
-                end
-            end
-        end
-    }
-)
+local function setHitboxSize(tool, size)
+    if tool and tool:FindFirstChild("Handle") then
+        tool.Handle.Size = Vector3.new(size, size, size)
+        tool.GripPos = Vector3.new(0, 0, 2)
+    end
+end
 
-local ToggleCrowbar =
-    Tab:CreateToggle(
-    {
-        Name = "Hitbox Crowbar",
-        CurrentValue = false,
-        Flag = "Toggle22",
-        Callback = function(Value)
-            local tool = getEquippedTool()
-            if tool and (tool.Name == "Crowbar" or tool.Name == "Crowbars") then
-                if Value then
-                    applyHitbox(tool, selectedSizeCrowbar)
-                else
-                    removeHitbox(tool)
-                end
-            end
-        end
-    }
-)
+local function resetHitboxSize(tool)
+    if tool and tool:FindFirstChild("Handle") then
+        tool.Handle.Size = Vector3.new(4, 4, 4) -- Ukuran default
+        tool.GripPos = Vector3.new(0, 0, 0)
+    end
+end
 
-local SliderBat =
-    Tab:CreateSlider(
-    {
-        Name = "Bat Size",
-        Range = {10, 100},
-        Increment = 10,
-        Suffix = "Size",
-        CurrentValue = 10,
-        Flag = "SliderBat",
-        Callback = function(Value)
-            selectedSizeBat = Value
-            local tool = getEquippedTool()
-            if tool and tool.Name == "Bat" then
-                applyHitbox(tool, selectedSizeBat)
+local ToggleBat = Tab:CreateToggle({
+    Name = "Hitbox Bat",
+    CurrentValue = false,
+    Flag = "ToggleBat",
+    Callback = function(Value)
+        local tool = getEquippedTool()
+        if tool and tool.Name == "Bat" then
+            if Value then
+                setHitboxSize(tool, 30)
+            else
+                resetHitboxSize(tool)
             end
         end
-    }
-)
+    end
+})
 
-local SliderCrowbar =
-    Tab:CreateSlider(
-    {
-        Name = "Crowbar Size",
-        Range = {10, 100},
-        Increment = 10,
-        Suffix = "Size",
-        CurrentValue = 10,
-        Flag = "SliderCrowbar",
-        Callback = function(Value)
-            selectedSizeCrowbar = Value
-            local tool = getEquippedTool()
-            if tool and (tool.Name == "Crowbar" or tool.Name == "Crowbars") then
-                applyHitbox(tool, selectedSizeCrowbar)
+local ToggleCrowbar = Tab:CreateToggle({
+    Name = "Hitbox Crowbar",
+    CurrentValue = false,
+    Flag = "ToggleCrowbar",
+    Callback = function(Value)
+        local tool = getEquippedTool()
+        if tool and (tool.Name == "Crowbar" or tool.Name == "Crowbars") then
+            if Value then
+                setHitboxSize(tool, 30)
+            else
+                resetHitboxSize(tool)
             end
         end
-    }
-)
+    end
+})
+------
+------
+local gefsHitboxToggle, sgefHitboxToggle
+
+local function updateHitboxSize(name, size)
+    for _, gef in ipairs(workspace.GEFs:GetChildren()) do
+        if gef.Name == name then
+            local hitbox = gef:FindFirstChild("Hitbox")
+            if hitbox then
+                hitbox.Size = Vector3.new(size, size, size)
+            end
+        end
+    end
+end
+
+gefsHitboxToggle = Tab:CreateToggle({
+    Name = "hitbox Gefs",
+    CurrentValue = false,
+    Flag = "Toggle33",
+    Callback = function(Value)
+        updateHitboxSize("Mini GEF", Value and 30 or 4)
+    end
+})
+
+sgefHitboxToggle = Tab:CreateToggle({
+    Name = "hitbox sgef",
+    CurrentValue = false,
+    Flag = "Toggle34",
+    Callback = function(Value)
+        updateHitboxSize("Tiny GEF", Value and 30 or 4)
+    end
+})
+--------
 local toggleActive = false -- Status toggle
 
 -- Toggle UI dari library yang Anda gunakan
@@ -1576,190 +1534,6 @@ local Toggle = Tab:CreateToggle({
        end
    end,
 })
-local gefsHitboxToggle, sgefHitboxToggle
-local gefsHitboxSlider, sgefHitboxSlider
-
--- Tabel untuk menyimpan ukuran asli Hitbox
-local originalHitboxSizes = {}
-
--- Fungsi untuk menyimpan ukuran asli Hitbox
-local function saveOriginalHitboxSizes()
-    for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-        if gef.Name == "Mini GEF" or gef.Name == "Tiny GEF" then
-            local hitbox = gef:FindFirstChild("Hitbox")
-            if hitbox then
-                originalHitboxSizes[gef] = hitbox.Size
-            end
-        end
-    end
-end
-
--- Panggil fungsi untuk menyimpan ukuran asli saat script pertama kali dijalankan
-saveOriginalHitboxSizes()
-
-gefsHitboxToggle =
-    Tab:CreateToggle(
-    {
-        Name = "hitbox Gefs",
-        CurrentValue = false,
-        Flag = "Toggle33",
-        Callback = function(Value)
-            if Value then
-                -- Simpan ukuran asli Hitbox jika belum disimpan
-                saveOriginalHitboxSizes()
-
-                -- Hubungkan event untuk Mini GEF yang baru ditambahkan
-                gefsConnection =
-                    workspace.GEFs.ChildAdded:Connect(
-                    function(child)
-                        if child.Name == "Mini GEF" then
-                            local hitbox = child:FindFirstChild("Hitbox")
-                            if hitbox then
-                                -- Simpan ukuran asli Hitbox
-                                originalHitboxSizes[child] = hitbox.Size
-                                -- Ubah ukuran Hitbox
-                                hitbox.Size = Vector3.new(gefsHitboxSlider, gefsHitboxSlider, gefsHitboxSlider)
-                            end
-                        end
-                    end
-                )
-
-                -- Ubah ukuran Hitbox untuk Mini GEF yang sudah ada
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Mini GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox then
-                            hitbox.Size = Vector3.new(gefsHitboxSlider, gefsHitboxSlider, gefsHitboxSlider)
-                        end
-                    end
-                end
-            else
-                -- Nonaktifkan toggle dan kembalikan ukuran Hitbox ke semula
-                if gefsConnection then
-                    gefsConnection:Disconnect()
-                    gefsConnection = nil
-                end
-
-                -- Kembalikan ukuran Hitbox untuk Mini GEF
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Mini GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox and originalHitboxSizes[gef] then
-                            hitbox.Size = originalHitboxSizes[gef]
-                        end
-                    end
-                end
-            end
-        end
-    }
-)
-
-sgefHitboxToggle =
-    Tab:CreateToggle(
-    {
-        Name = "hitbox sgef",
-        CurrentValue = false,
-        Flag = "Toggle34",
-        Callback = function(Value)
-            if Value then
-                -- Simpan ukuran asli Hitbox jika belum disimpan
-                saveOriginalHitboxSizes()
-
-                -- Hubungkan event untuk Tiny GEF yang baru ditambahkan
-                sgefConnection =
-                    workspace.GEFs.ChildAdded:Connect(
-                    function(child)
-                        if child.Name == "Tiny GEF" then
-                            local hitbox = child:FindFirstChild("Hitbox")
-                            if hitbox then
-                                -- Simpan ukuran asli Hitbox
-                                originalHitboxSizes[child] = hitbox.Size
-                                -- Ubah ukuran Hitbox
-                                hitbox.Size = Vector3.new(sgefHitboxSlider, sgefHitboxSlider, sgefHitboxSlider)
-                            end
-                        end
-                    end
-                )
-
-                -- Ubah ukuran Hitbox untuk Tiny GEF yang sudah ada
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Tiny GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox then
-                            hitbox.Size = Vector3.new(sgefHitboxSlider, sgefHitboxSlider, sgefHitboxSlider)
-                        end
-                    end
-                end
-            else
-                -- Nonaktifkan toggle dan kembalikan ukuran Hitbox ke semula
-                if sgefConnection then
-                    sgefConnection:Disconnect()
-                    sgefConnection = nil
-                end
-
-                -- Kembalikan ukuran Hitbox untuk Tiny GEF
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Tiny GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox and originalHitboxSizes[gef] then
-                            hitbox.Size = originalHitboxSizes[gef]
-                        end
-                    end
-                end
-            end
-        end
-    }
-)
-
-gefsHitboxSlider =
-    Tab:CreateSlider(
-    {
-        Name = "Hitbox for gefs",
-        Range = {3, 20},
-        Increment = 1,
-        Suffix = "Size",
-        CurrentValue = 4,
-        Flag = "Slider11",
-        Callback = function(Value)
-            gefsHitboxSlider = Value
-            if gefsHitboxToggle.CurrentValue then
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Mini GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox then
-                            hitbox.Size = Vector3.new(Value, Value, Value)
-                        end
-                    end
-                end
-            end
-        end
-    }
-)
-
-sgefHitboxSlider =
-    Tab:CreateSlider(
-    {
-        Name = "Hitbox for sgef",
-        Range = {3, 20},
-        Increment = 1,
-        Suffix = "Size",
-        CurrentValue = 10,
-        Flag = "Slider22",
-        Callback = function(Value)
-            sgefHitboxSlider = Value
-            if sgefHitboxToggle.CurrentValue then
-                for _, gef in ipairs(workspace.GEFs:GetChildren()) do
-                    if gef.Name == "Tiny GEF" then
-                        local hitbox = gef:FindFirstChild("Hitbox")
-                        if hitbox then
-                            hitbox.Size = Vector3.new(Value, Value, Value)
-                        end
-                    end
-                end
-            end
-        end
-    }
-)
 local Section = Tab:CreateSection("Esp")
 local Section = Tab:CreateSection("esp player")
 local espActive = false
@@ -2044,109 +1818,88 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Variabel ESP
+-- ESP Configuration
 local ESPEnabled = {
     MiniGEF = false,
     TinyGEF = false,
-    BigGEF = false
+    GEF = false
 }
-local activeESP = {
-    MiniGEF = {},
-    TinyGEF = {},
-    BigGEF = {}
-}
+local ESPs = {}
 
--- Utility: Menghitung jarak
+-- Utility: Menghitung jarak dari pemain
 local function getDistance(position)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     return hrp and (hrp.Position - position).Magnitude or math.huge
 end
 
--- Utility: Buat ESP
-local function createESP(object, text, color, category)
-    if not object or not category then return end
+-- Membuat ESP
+local function createESP(rootPart, text, category, color)
+    if not rootPart or ESPs[rootPart] then return end
 
-    -- Hapus ESP lama di kategori ini
-    if activeESP[category] then
-        for _, esp in ipairs(activeESP[category]) do
-            if esp and esp.Parent then
-                esp:Destroy()
-            end
-        end
-    end
-    activeESP[category] = {}
+    local BillboardGui = Instance.new("BillboardGui")
+    BillboardGui.Parent = game.CoreGui
+    BillboardGui.Adornee = rootPart
+    BillboardGui.Size = UDim2.new(0, 200, 0, 50)
+    BillboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    BillboardGui.AlwaysOnTop = true
 
-    -- Buat BillboardGui baru
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ESP_Billboard"
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.Adornee = object
-    billboard.AlwaysOnTop = true
+    local TextLabel = Instance.new("TextLabel", BillboardGui)
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextScaled = true
+    TextLabel.TextColor3 = color
+    TextLabel.Font = Enum.Font.SourceSansBold
+    TextLabel.Text = text
 
-    local textLabel = Instance.new("TextLabel", billboard)
-    textLabel.Name = "ESP_Label"
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextScaled = true
-    textLabel.TextColor3 = color
-    textLabel.Text = text
-
-    billboard.Parent = object
-    table.insert(activeESP[category], billboard)
+    ESPs[rootPart] = BillboardGui
 end
 
--- Hapus ESP kategori tertentu
-local function clearESPByCategory(category)
-    for _, esp in ipairs(activeESP[category]) do
-        if esp and esp.Parent then
-            esp:Destroy()
-        end
+-- Menghapus ESP jika GEF dihapus
+local function removeESP(rootPart)
+    if ESPs[rootPart] then
+        ESPs[rootPart]:Destroy()
+        ESPs[rootPart] = nil
     end
-    activeESP[category] = {}
 end
 
--- Update ESP berdasarkan model
-local function updateModelESP(modelName, category, partName, isEnabled)
-    if not isEnabled then
-        clearESPByCategory(category)
-        return
+-- Update ESP untuk semua GEF
+local function updateESP()
+    local existingGEFs = {}
+
+    -- Cek GEF utama di workspace
+    for _, gef in ipairs(workspace:GetChildren()) do
+        if gef:IsA("Model") and gef:FindFirstChild("RootPart") and ESPEnabled.GEF then
+            local rootPart = gef.RootPart
+            local distance = getDistance(rootPart.Position)
+            createESP(rootPart, "GEF\nDistance: " .. math.floor(distance), "GEF", Color3.new(1, 0, 0))
+            existingGEFs[rootPart] = true
+        end
     end
 
-    local model
-    if modelName == "Big GEF" then
-        model = workspace:FindFirstChild("GEF") -- 🔧 Perbaikan di sini
-    else
-        local gefs = workspace:FindFirstChild("GEFs")
-        if gefs then
-            for _, m in ipairs(gefs:GetChildren()) do
-                if m:IsA("Model") and m.Name == modelName then
-                    model = m
-                    break
+    -- Cek Mini GEF & Tiny GEF di workspace.GEFs
+    local gefsFolder = workspace:FindFirstChild("GEFs")
+    if gefsFolder then
+        for _, model in ipairs(gefsFolder:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("Head") then
+                local category = ESPEnabled.MiniGEF and model.Name == "Mini GEF" and "MiniGEF" or
+                                 ESPEnabled.TinyGEF and model.Name == "Tiny GEF" and "TinyGEF" or nil
+
+                if category then
+                    local rootPart = model.Head
+                    local distance = getDistance(rootPart.Position)
+                    createESP(rootPart, model.Name .. "\nDistance: " .. math.floor(distance), category, Color3.new(0, 1, 0))
+                    existingGEFs[rootPart] = true
                 end
             end
         end
     end
 
-    if not model then return end
-
-    local part = model:FindFirstChild(partName)
-    local health = model:FindFirstChild("Health")
-
-    if part and health and health:IsA("NumberValue") then
-        local distance = getDistance(part.Position)
-        local healthValue = health.Value
-
-        -- Warna berdasarkan health
-        local color = Color3.new(0, 1, 0) -- Hijau
-        if healthValue < 10 then
-            color = Color3.new(1, 0, 0) -- Merah
-        elseif healthValue < 60 then
-            color = Color3.new(1, 0.5, 0) -- Oranye
+    -- Hapus ESP jika GEF sudah tidak ada
+    for rootPart, _ in pairs(ESPs) do
+        if not existingGEFs[rootPart] or not rootPart:IsDescendantOf(workspace) then
+            removeESP(rootPart)
         end
-
-        createESP(part, modelName .. "\nHealth: " .. healthValue .. "\nDistance: " .. math.floor(distance), color, category)
     end
 end
 
@@ -2170,22 +1923,18 @@ Tab:CreateToggle({
     end
 })
 
--- Toggle ESP Big GEF
+-- Toggle ESP GEF
 Tab:CreateToggle({
-    Name = "ESP Big GEF",
+    Name = "ESP GEF",
     CurrentValue = false,
-    Flag = "BigGEFESP",
+    Flag = "GEFESP",
     Callback = function(value)
-        ESPEnabled.BigGEF = value
+        ESPEnabled.GEF = value
     end
 })
 
--- Loop Update ESP
-RunService.RenderStepped:Connect(function()
-    updateModelESP("Mini GEF", "MiniGEF", "Head", ESPEnabled.MiniGEF)
-    updateModelESP("Tiny GEF", "TinyGEF", "Head", ESPEnabled.TinyGEF)
-    updateModelESP("Big GEF", "BigGEF", "RootPart", ESPEnabled.BigGEF) -- 🔧 Sekarang fix
-end)
+-- Loop untuk update ESP
+RunService.RenderStepped:Connect(updateESP)
 local Section = Tab:CreateSection("Building")
 local espList = {} -- Simpan semua ESP yang dibuat
 
@@ -2478,9 +2227,9 @@ local function updateParagraph()
         end
     end
 
-    local bigGefStatus = "❌"
+    local GEFStatus = "❌"
     if gefRoot and gefRoot:FindFirstChild("RootPart") and gefRoot.RootPart:FindFirstChild("ShatterHitbox") then
-        bigGefStatus = "✅"
+        GEFStatus = "✅"
     end
 
     local dayValue = serverSettings:FindFirstChild("Day")
@@ -2488,7 +2237,7 @@ local function updateParagraph()
 
     Paragraph:Set({
         Title = "Stats Info",
-        Content = "Big Gef: " .. bigGefStatus ..
+        Content = "GEF: " .. GEFStatus ..
             "\nBullets: " .. bullets ..
             "\nDays count: " .. days ..
             "\nDifficulty: " .. difficulty ..
@@ -2529,67 +2278,96 @@ local Toggle = Tab:CreateToggle({
     end
 })
 local Tab = Window:CreateTab("Autobuilding", "hammer")
+
 local houseOptions = {
     "None", -- Tambahkan opsi None agar tidak langsung memuat skrip
     "House One",
     "Large House One"
 }
 
+local housePositions = {
+    ["Tower"] = Vector3.new(-449, 61, 219),
+    ["Housefloor"] = Vector3.new(-297, 9, 362),
+    ["houseidk"] = Vector3.new(554, 7, 486),
+    ["MiniHouse"] = Vector3.new(-30, 10, -139),
+    ["MarketCity"] = Vector3.new(-64, 8, 377),
+    ["Market2"] = Vector3.new(21, 8, 308)
+}
+
 -- Fungsi untuk memuat skrip berdasarkan pilihan dropdown
 local function loadHouseScript(houseName)
-    if houseName == "House One" then
-        print("Loading House One...")
+    local urls = {
+        ["House One"] = "https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/houseone",
+        ["Large House One"] = "https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/largehouse",
+        ["MarketCity"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/market",
+        ["Market2"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/market2%20city",
+        ["MiniHouse"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/mini%20house",
+        ["houseidk"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/house%20garage",
+        ["Housefloor"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/house2garage",
+        ["Tower"] = "https://raw.githubusercontent.com/wipff2/Plank/refs/heads/main/Tower"
+    }
+    
+    if urls[houseName] then
         local success, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/houseone"))()
+            loadstring(game:HttpGet(urls[houseName]))()
         end)
-        if success then
-            Rayfield:Notify({
-                Title = "Success",
-                Content = "House One loaded successfully!",
-                Duration = 6.5,
-                Image = 4483362458,
-            })
-        else
-            Rayfield:Notify({
-                Title = "Error",
-                Content = "Failed to load House One: " .. tostring(err),
-                Duration = 6.5,
-                Image = 4483362458,
-            })
-        end
-    elseif houseName == "Large House One" then
-        print("Loading Large House One...")
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/wipff2/gef/refs/heads/main/largehouse"))()
-        end)
-        if success then
-            Rayfield:Notify({
-                Title = "Success",
-                Content = "Large House One loaded successfully!",
-                Duration = 6.5,
-                Image = 4483362458,
-            })
-        else
-            Rayfield:Notify({
-                Title = "Error",
-                Content = "Failed to load Large House One: " .. tostring(err),
-                Duration = 6.5,
-                Image = 4483362458,
-            })
-        end
+        
+        Rayfield:Notify({
+            Title = success and "Success" or "Error",
+            Content = success and (houseName .. " loaded successfully!") or ("Failed to load " .. houseName .. ": " .. tostring(err)),
+            Duration = 6.5,
+            Image = 4483362458,
+        })
     end
 end
 
--- Dropdown untuk memilih dan menjalankan skrip rumah
+local selectedHouse = "None" -- Variabel global untuk menyimpan pilihan terakhir
+
 Tab:CreateDropdown({
     Name = "Select House",
     Options = houseOptions,
-    CurrentOption = {"None"}, -- Default None
+    CurrentOption = {"None"},
     MultipleOptions = false,
     Flag = "HouseDropdown",
     Callback = function(Options)
-        if Options[1] and Options[1] ~= "None" then
-            loadHouseScript(Options[1]) -- Jalankan skrip sesuai pilihan dropdown
+        selectedHouse = Options[1] -- Simpan pilihan terakhir
+        print("Dropdown selected:", selectedHouse) -- Debugging
+        if selectedHouse ~= "None" then
+            loadHouseScript(selectedHouse)
         end
     end
 })
+
+Tab:CreateButton({
+    Name = "Teleport to House",
+    Callback = function()
+        print("Using selectedHouse:", selectedHouse) -- Debugging
+        if housePositions[selectedHouse] then
+            local character = game.Players.LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = CFrame.new(housePositions[selectedHouse])
+                Rayfield:Notify({
+                    Title = "Teleported!",
+                    Content = "You have been teleported to " .. selectedHouse .. "!",
+                    Duration = 6.5,
+                    Image = 4483362458,
+                })
+            else
+                Rayfield:Notify({
+                    Title = "Error",
+                    Content = "Teleport failed. Character not found!",
+                    Duration = 6.5,
+                    Image = 4483362458,
+                })
+            end
+        else
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "No valid house selected for teleportation!",
+                Duration = 6.5,
+                Image = 4483362458,
+            })
+        end
+    end
+})
+local Paragraph = Tab:CreateParagraph({Title = "how to stop build?", Content = "unequip hammer or die/rejoin"})
