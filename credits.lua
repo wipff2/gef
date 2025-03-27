@@ -18,7 +18,7 @@ local label = Instance.new("TextLabel")
 label.Size = UDim2.new(0, 100, 0, 20)
 label.Position = UDim2.new(0.5, -50, 0.8, -30)  -- Positioned above the button
 label.BackgroundTransparency = 1  -- Set background transparency to 1
-label.Text = "ViRetro HUB"
+label.Text = "YT Rof_r"
 label.TextColor3 = Color3.new(1, 1, 1)  -- Optional: set text color to white
 label.Parent = screenGui
 
@@ -32,7 +32,7 @@ button.Parent = screenGui
 
 -- Copy to clipboard function
 local function copyToClipboard()
-    setclipboard("https://discord.gg/Y7XvfFrD")
+    setclipboard("https://discord.gg/5WyqSBKQ")
     button.Text = "Copied"
     wait(2)
     button.Text = "Click Me!!!"
