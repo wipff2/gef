@@ -51,7 +51,7 @@ local function CopyToClipboard(text)
     if setclipboard then
         setclipboard(text)
     elseif toclipboard then
-        toclipboard(text)
+        toclipboard(text)"
     elseif syn and syn.write_clipboard then
         syn.write_clipboard(text)
     else
@@ -61,7 +61,7 @@ end
 
 -- Button untuk menyalin kode
 local Button = Tab:CreateButton({
-    Name = "Copy Loadstring",
+    Name = "Copy Script,
     Callback = function()
         CopyToClipboard(scriptCode)
     end,
@@ -78,11 +78,8 @@ local Input = Tab:CreateInput({
         scriptCode = string.format(codeTemplate, Text)
     end,
 })
-
--- Contoh cara mengubah teks input dari kode
-Input:Set("loadstring(game:HttpGet('https://raw.githubusercontent.com/nAlwspa/rayfield/refs/heads/main/fef.lua'))()") -- Akan memperbarui input dan loadstring
--- Membuat Section untuk metode teleport
-local Section = Tab:CreateSection("TP Method", true)
+Input:Set("loadstring(game:HttpGet('https://raw.githubusercontent.com/nAlwspa/rayfield/refs/heads/main/fef.lua'))()")
+local Section = Tab:CreateSection("Items", true)
 
 -- Daftar nama tools
 local items = {
@@ -166,36 +163,39 @@ end
 local function createPreviewCircle()
     if #previewBeams > 0 then
         return
-    end -- Jika sudah ada, jangan buat lagi
+    end
 
-    -- Jumlah beam untuk membuat lingkaran (semakin banyak, semakin halus)
-    local numBeams = 30
+    -- Optimasi: Kurangi jumlah beam untuk performa lebih baik
+    local numBeams = 16 -- Dikurangi dari 30 untuk performa lebih baik
     local angleIncrement = (2 * math.pi) / numBeams
 
     for i = 1, numBeams do
-        -- Buat part untuk beam
         local beamPart = Instance.new("Part")
-        beamPart.Size = Vector3.new(0.2, 0.2, 0.2)
-        beamPart.Transparency = 0.5
+        beamPart.Size = Vector3.new(0.3, 0.3, 0.3) -- Sedikit lebih besar untuk kompensasi jumlah yang lebih sedikit
+        beamPart.Transparency = 0.7 -- Lebih transparan
+        beamPart.Material = Enum.Material.Neon -- Material yang lebih ringan
         beamPart.Color = Color3.new(1, 0, 0)
         beamPart.Anchored = true
         beamPart.CanCollide = false
+        beamPart.CastShadow = false -- Nonaktifkan shadow untuk performa
         beamPart.Parent = workspace
 
-        -- Simpan beam ke tabel
         table.insert(previewBeams, beamPart)
     end
 end
 
--- Fungsi untuk menghapus preview lingkaran beam
 local function destroyPreviewCircle()
     for _, beam in ipairs(previewBeams) do
         beam:Destroy()
     end
-    previewBeams = {} -- Kosongkan tabel
+    previewBeams = {}
 end
 
--- Fungsi untuk memperbarui posisi beam setiap saat
+-- Optimasi: Cache variabel untuk menghindari perhitungan berulang
+local lastPosition = nil
+local updateCounter = 0
+local UPDATE_FREQUENCY = 1 -- Update setiap 3 frame (bukan setiap frame)
+
 local function updateBeams()
     local player = game.Players.LocalPlayer
     local character = player.Character
@@ -208,36 +208,85 @@ local function updateBeams()
         return
     end
 
+    local currentPosition = humanoidRootPart.Position
+    
+    -- Optimasi: Skip update jika posisi tidak berubah signifikan
+    if lastPosition and (currentPosition - lastPosition).Magnitude < 0.1 then
+        return
+    end
+    
+    lastPosition = currentPosition
+
     local numBeams = #previewBeams
     local angleIncrement = (2 * math.pi) / numBeams
 
     for i, beam in ipairs(previewBeams) do
-        -- Hitung posisi beam
         local angle = i * angleIncrement
         local x = math.cos(angle) * excludeDistance
         local z = math.sin(angle) * excludeDistance
-        local beamPosition = humanoidRootPart.Position + Vector3.new(x, 0, z)
+        local beamPosition = currentPosition + Vector3.new(x, 0, z)
 
-        -- Posisikan beam
-        beam.CFrame = CFrame.new(beamPosition)
+        beam.Position = beamPosition -- Gunakan Position saja, bukan CFrame untuk yang sederhana
     end
 end
 
--- Fungsi untuk memulai pembaruan beam secara real-time
 local function startUpdatingBeams()
-    game:GetService("RunService").Heartbeat:Connect(
-        function()
-            if isPreviewActive then
-                updateBeams() -- Perbarui posisi beam setiap frame
-            end
+    local heartbeat = game:GetService("RunService").Heartbeat
+    
+    heartbeat:Connect(function()
+        if not isPreviewActive then
+            return
         end
-    )
+        
+        -- Optimasi: Update tidak setiap frame, tapi setiap beberapa frame
+        updateCounter = (updateCounter + 1) % UPDATE_FREQUENCY
+        if updateCounter == 0 then
+            updateBeams()
+        end
+    end)
 end
-local Section = Tab:CreateSection("Distance")
--- Toggle untuk mengaktifkan/menonaktifkan preview jarak
+
+-- Alternatif yang lebih efisien: Gunakan Part tunggal dengan Mesh
+local function createOptimizedPreviewCircle()
+    if previewCircle then
+        return
+    end
+
+    -- Buat part tunggal dengan SpecialMesh untuk lingkaran
+    local circlePart = Instance.new("Part")
+    circlePart.Name = "PreviewCircle"
+    circlePart.Size = Vector3.new(excludeDistance * 2, 0.1, excludeDistance * 2)
+    circlePart.Transparency = 0.8
+    circlePart.Color = Color3.new(1, 0, 0)
+    circlePart.Material = Enum.Material.Neon
+    circlePart.Anchored = true
+    circlePart.CanCollide = false
+    circlePart.CastShadow = false
+    
+    local mesh = Instance.new("CylinderMesh")
+    mesh.Parent = circlePart
+    
+    circlePart.Parent = workspace
+    previewCircle = circlePart
+end
+
+local function updateOptimizedCircle()
+    if not previewCircle then
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoidRootPart = character.HumanoidRootPart
+    previewCircle.Position = humanoidRootPart.Position + Vector3.new(0, -2.5, 0) -- Posisikan di bawah karakter
+end
 Tab:CreateToggle(
     {
-        Name = "Preview Distance",
+        Name = "Show Distance Exclude",
         CurrentValue = false,
         Flag = "TogglePreviewDistance",
         Callback = function(Value)
@@ -252,10 +301,9 @@ Tab:CreateToggle(
     }
 )
 
--- Slider untuk mengatur jarak excludeDistance
 Tab:CreateSlider(
     {
-        Name = "Exclude Distance",
+        Name = "Exclude Number",
         Range = {0, 20},
         Increment = 1,
         Suffix = " Studs",
@@ -264,12 +312,11 @@ Tab:CreateSlider(
         Callback = function(Value)
             excludeDistance = Value
             if isPreviewActive then
-                updateBeams() -- Perbarui visualisasi beam
+                updateBeams()
             end
         end
     }
 )
-local Section = Tab:CreateSection("Item")
 local function findNearestItemOutsideExcludeDistance(itemName)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -302,13 +349,11 @@ local function findNearestItemOutsideExcludeDistance(itemName)
     return nearestItem
 end
 
--- Menambahkan opsi "None" untuk mencegah teleportasi langsung
 table.insert(items, 1, "None")
 
--- Fungsi teleportasi dengan antrian
 local function teleportToItem(item)
     if item == "None" then
-        return -- Jika "None" dipilih, jangan lakukan apa pun
+        return
     end
 
     table.insert(teleportQueue, function()
@@ -318,27 +363,46 @@ local function teleportToItem(item)
 
         if not humanoidRootPart then
             warn("HumanoidRootPart not found.")
-            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            table.remove(teleportQueue, 1)
             return
         end
+
+        -- Optimasi: Nonaktifkan fisika sementara selama teleport
+        local bodyVelocity = humanoidRootPart:FindFirstChild("BodyVelocity")
+        local bodyGyro = humanoidRootPart:FindFirstChild("BodyGyro")
+        
+        -- Buat anchor sementara untuk stabilisasi
+        local tempAnchor = Instance.new("BodyVelocity")
+        tempAnchor.Velocity = Vector3.new(0, 0, 0)
+        tempAnchor.MaxForce = Vector3.new(0, 0, 0) -- Awalnya nonaktif
+        tempAnchor.Parent = humanoidRootPart
 
         local nearestItem = findNearestItemOutsideExcludeDistance(item)
         if not nearestItem then
             warn("No " .. item .. " found.")
-            table.remove(teleportQueue, 1) -- Hapus tugas yang gagal
+            tempAnchor:Destroy()
+            table.remove(teleportQueue, 1)
             return
         end
 
         if returnToOriginal and not isTeleporting then
             originalPosition = humanoidRootPart.CFrame
             isTeleporting = true
-            print("Position saved.")
         end
 
-        humanoidRootPart.CFrame = nearestItem.CFrame
-        print("Teleport")
+        -- Stabilisasi sebelum teleport
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        humanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        
+        -- Teleport dengan offset yang aman
+        local teleportCFrame = nearestItem.CFrame + Vector3.new(0, 3, 0) -- Offset vertikal
+        humanoidRootPart.CFrame = teleportCFrame
+        
+        -- Aktifkan stabilisasi setelah teleport
+        tempAnchor.MaxForce = Vector3.new(4000, 4000, 4000) -- Force moderat
+        tempAnchor.Velocity = Vector3.new(0, 0, 0)
 
-        task.wait(0.2)
+        task.wait(0.1) -- Tunggu sebentar untuk stabil
 
         if autoTriggerPrompt then
             local promptsTriggered = 0
@@ -347,36 +411,149 @@ local function teleportToItem(item)
                     local promptDistance = (humanoidRootPart.Position - descendant.Parent.Position).Magnitude
                     if promptDistance <= descendant.MaxActivationDistance then
                         fireproximityprompt(descendant, 0)
-                        task.wait(0.2)
+                        task.wait(0.15) -- Tunggu lebih singkat
                         fireproximityprompt(descendant, 1)
                         promptsTriggered = promptsTriggered + 1
+                        
+                        if promptsTriggered >= 2 then break end
                     end
                 end
             end
         end
 
         if returnToOriginal and originalPosition then
-            task.wait(0.5)
-            humanoidRootPart.CFrame = originalPosition
+            task.wait(0.3) -- Tunggu lebih singkat
+            
+            -- Stabilisasi sebelum kembali
+            humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            humanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            
+            -- Kembali dengan offset aman
+            local returnCFrame = originalPosition + Vector3.new(0, 3, 0)
+            humanoidRootPart.CFrame = returnCFrame
+            
+            -- Stabilisasi setelah kembali
+            tempAnchor.Velocity = Vector3.new(0, 0, 0)
+            
             print("Back")
-
-            task.wait(0.3)
+            task.wait(0.2)
         end
+
+        -- Bersihkan stabilisasi setelah delay
+        task.wait(0.1)
+        tempAnchor:Destroy()
 
         if autoDropHeldItem then
             dropHeldItem()
         end
 
-        isTeleporting = false -- Reset status teleportasi
-        table.remove(teleportQueue, 1) -- Hapus tugas yang telah selesai
+        isTeleporting = false
+        table.remove(teleportQueue, 1)
 
-        -- Jalankan tugas berikutnya jika ada dalam antrian
+        -- Jalankan tugas berikutnya jika ada
         if #teleportQueue > 0 then
+            task.wait(0.3) -- Tunggu sebentar sebelum teleport berikutnya
             teleportQueue[1]()
         end
     end)
 
-    -- Jika tidak ada teleportasi yang sedang berjalan, mulai proses pertama dalam antrian
+    if #teleportQueue == 1 then
+        teleportQueue[1]()
+    end
+end
+
+-- Fungsi alternatif yang lebih stabil menggunakan TweenService
+local function smoothTeleportToItem(item)
+    if item == "None" then
+        return
+    end
+
+    table.insert(teleportQueue, function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+        if not humanoidRootPart then
+            table.remove(teleportQueue, 1)
+            return
+        end
+
+        local nearestItem = findNearestItemOutsideExcludeDistance(item)
+        if not nearestItem then
+            table.remove(teleportQueue, 1)
+            return
+        end
+
+        -- Nonaktifkan gravitasi sementara untuk karakter
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = true -- Mencegah interupsi fisika
+        end
+
+        -- Reset velocity
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        humanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+        if returnToOriginal and not isTeleporting then
+            originalPosition = humanoidRootPart.CFrame
+            isTeleporting = true
+        end
+
+        local targetCFrame = nearestItem.CFrame + Vector3.new(0, 2.5, 0)
+        humanoidRootPart.CFrame = targetCFrame
+        
+        task.wait(0.1)
+
+        if autoTriggerPrompt then
+            local region = Region3.new(
+                humanoidRootPart.Position - Vector3.new(10, 10, 10),
+                humanoidRootPart.Position + Vector3.new(10, 10, 10)
+            )
+            local parts = workspace:FindPartsInRegion3(region, nil, 50)
+            
+            for _, part in ipairs(parts) do
+                local prompt = part:FindFirstChildOfClass("ProximityPrompt")
+                if prompt then
+                    fireproximityprompt(prompt, 0)
+                    task.wait(0.1)
+                    fireproximityprompt(prompt, 1)
+                    break
+                end
+            end
+        end
+
+        if returnToOriginal and originalPosition then
+            task.wait(0.2)
+            
+            -- Reset velocity lagi sebelum kembali
+            humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            humanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            
+            local returnCFrame = originalPosition + Vector3.new(0, 2.5, 0)
+            humanoidRootPart.CFrame = returnCFrame
+            
+            task.wait(0.1)
+        end
+
+        -- Kembalikan kontrol ke player
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+
+        if autoDropHeldItem then
+            task.wait(0.1)
+            dropHeldItem()
+        end
+
+        isTeleporting = false
+        table.remove(teleportQueue, 1)
+
+        if #teleportQueue > 0 then
+            task.wait(0.4) -- Delay lebih panjang antar teleport
+            teleportQueue[1]()
+        end
+    end)
+
     if #teleportQueue == 1 then
         teleportQueue[1]()
     end
@@ -402,7 +579,6 @@ local autoReturnSavePos = false -- Status toggle untuk auto return ke posisi yan
 local savedPosition = nil -- Posisi yang disimpan
 local Label = Tab:CreateLabel("Saved Position: None") -- Label untuk menampilkan posisi
 
--- Membuat Toggle untuk auto-teleport ke Money
 Tab:CreateToggle(
     {
         Name = "Auto Get Money",
@@ -436,7 +612,6 @@ Tab:CreateToggle(
     }
 )
 
--- Membuat Toggle untuk Auto Return (kembali ke posisi sebelum teleport)
 Tab:CreateToggle(
     {
         Name = "Auto Return",
@@ -514,7 +689,6 @@ function teleportAndTriggerMoney()
     end
 end
 
--- Membuat Button untuk mendapatkan posisi karakter
 Tab:CreateButton(
     {
         Name = "Save Current Position",
@@ -543,9 +717,7 @@ Tab:CreateButton(
 
 local Tab = Window:CreateTab("Shop", "store")
 local Section = Tab:CreateSection("sell", true)
-local autoSellAll = false -- Status toggle untuk Auto Sell All
-
--- Fungsi untuk menjual semua item di Backpack
+local autoSellAll = false 
 local function sellAllItems()
     local player = game.Players.LocalPlayer
     local backpack = player:FindFirstChild("Backpack")
@@ -561,7 +733,6 @@ local function sellAllItems()
     end
 end
 
--- Toggle untuk Auto Sell All
 Tab:CreateToggle(
     {
         Name = "Auto Sell All",
@@ -585,8 +756,8 @@ Tab:CreateToggle(
     }
 )
 
-local selectedItems = {} -- Menyimpan item yang dipilih dari dropdown
-local sellSpecificSelected = false -- Status toggle untuk menjual item yang dipilih
+local selectedItems = {} 
+local sellSpecificSelected = false
 
 -- Daftar nama item tetap, termasuk GPS
 local predefinedItems = {
@@ -605,7 +776,6 @@ local predefinedItems = {
     "GPS"
 }
 
--- Fungsi untuk menjual item berdasarkan nama
 local function sellItemByName(itemName)
     local player = game.Players.LocalPlayer
     local backpack = player:FindFirstChild("Backpack")
@@ -622,7 +792,6 @@ local function sellItemByName(itemName)
     end
 end
 
--- Dropdown untuk memilih item yang akan dijual
 Tab:CreateDropdown(
     {
         Name = "Select Items to Sell",
@@ -641,7 +810,6 @@ Tab:CreateDropdown(
     }
 )
 
--- Toggle untuk menjual item yang dipilih di dropdown
 local Section
 Tab:CreateToggle(
     {
@@ -653,7 +821,6 @@ Tab:CreateToggle(
             print("Succes Sell:", sellSpecificSelected)
 
             if sellSpecificSelected then
-                -- Menjual semua item yang dipilih saat toggle diaktifkan
                 task.spawn(
                     function()
                         while sellSpecificSelected do
@@ -668,8 +835,7 @@ Tab:CreateToggle(
         end
     }
 )
-local Section = Tab:CreateSection("upgrade", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
--- Membuat Button untuk MaxStamina
+local Section = Tab:CreateSection("upgrade", true)
 Tab:CreateButton(
     {
         Name = "Purchase Max Stamina",
@@ -908,7 +1074,7 @@ local ToggleSpeed = Tab:CreateToggle({
 local SpeedInput = Tab:CreateInput({
    Name = "Set Speed",
    CurrentValue = tostring(speed),
-   PlaceholderText = "Masukkan Kecepatan",
+   PlaceholderText = "input here",
    RemoveTextAfterFocusLost = false,
    Flag = "SpeedInput",
    Callback = function(Text)
@@ -1075,7 +1241,6 @@ local function check()
     local MaxStamina = Player.Upgrades:FindFirstChild("MaxStamina") and Player.Upgrades.MaxStamina.Value or 1
     local Energy = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Energy")
 
-    -- Hitung MaxEnergy berdasarkan MaxStamina (1 = 70, 4 = 100)
     local MinStamina, MaxStaminaValue = 1, 4
     local MinEnergy, MaxEnergy = 70, 100
     local CurrentMaxEnergy = math.clamp(MinEnergy + ((MaxStamina - MinStamina) / (MaxStaminaValue - MinStamina)) * (MaxEnergy - MinEnergy), MinEnergy, MaxEnergy)
@@ -1084,10 +1249,8 @@ local function check()
     local HealthFull = Humanoid and Humanoid.Health >= 100
     local EnergyFull = Energy and Energy.Value >= CurrentMaxEnergy
 
-    -- Hanya makan jika setidaknya salah satu nilai belum penuh
     if HealthFull and EnergyFull then return end
 
-    -- Cari Food di workspace.LocalPlayer.Food
     local Tool = workspace:FindFirstChild(Player.Name) and workspace[Player.Name]:FindFirstChild("Food")
 
     if Tool then
@@ -1101,7 +1264,6 @@ local function check()
     end
 end
 
--- Fungsi untuk penyembuhan otomatis
 local function HealPlayer()
     if not HealingEnabled then return end -- Tidak melakukan apa-apa jika toggle OFF
 
@@ -1124,11 +1286,8 @@ local function HealPlayer()
     end
 end
 
--- Loop untuk menjalankan fungsi setiap frame
 RunService.Heartbeat:Connect(check)
 RunService.Heartbeat:Connect(HealPlayer)
--- Loop untuk mengecek setiap frame
-RunService.Heartbeat:Connect(check)
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -1157,7 +1316,7 @@ local function adjustLightBrightness()
             ReplicatedStorage.ServerSettings.Day.Value
 
         if isDay then
-            lightInstance.Brightness = 2 -- Cahaya kecil saat siang
+            lightInstance.Brightness = 1.6 -- Cahaya kecil saat siang
             lightInstance.Range = 300000 -- Jangkauan kecil
         else
             lightInstance.Brightness = 3 -- Cahaya terang saat malam
@@ -1365,8 +1524,7 @@ local ToggleCrowbar = Tab:CreateToggle({
         end
     end
 })
-------
-------
+--------
 local gefsHitboxToggle, sgefHitboxToggle
 
 local function updateHitboxSize(name, size)
@@ -1398,9 +1556,7 @@ sgefHitboxToggle = Tab:CreateToggle({
     end
 })
 --------
-local toggleActive = false -- Status toggle
-
--- Toggle UI dari library yang Anda gunakan
+local toggleActive = false
 local Toggle =
     Tab:CreateToggle(
     {
@@ -1418,7 +1574,6 @@ local Toggle =
     }
 )
 
--- Fungsi untuk mendeteksi dan menghapus ParticleEmitter
 local function deleteParticles()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ParticleEmitter") then
@@ -1427,11 +1582,9 @@ local function deleteParticles()
     end
 end
 
-local connection  -- Menyimpan koneksi event
-
--- Fungsi untuk mulai deteksi otomatis
+local connection
 function startDetectingParticles()
-    deleteParticles() -- Hapus partikel yang sudah ada
+    deleteParticles()
 
     connection =
         workspace.DescendantAdded:Connect(
@@ -1492,13 +1645,10 @@ if not GEFs then
     warn("Found Nothing!")
 end
 
--- Variabel untuk toggle status
 local isRunning = false
-local heartbeatConnection -- Variabel untuk menyimpan koneksi Heartbeat
-
--- Fungsi untuk mengecek dan menghapus GoTo
+local heartbeatConnection
 local function checking()
-    if not isRunning then return end -- Jika toggle tidak aktif, hentikan proses
+    if not isRunning then return end
     
     for _, gef in ipairs(GEFs:GetChildren()) do
         if gef:IsA("Model") and (gef.Name:find("Mini GEF") or gef.Name:find("Tiny GEF")) then
@@ -1536,7 +1686,7 @@ local Toggle = Tab:CreateToggle({
 })
 local Section = Tab:CreateSection("Esp")
 local Section = Tab:CreateSection("esp player")
-local espActive = false
+local espActive = true
 local displayName = false
 local displayHealth = false
 local displayDistance = false
@@ -1953,7 +2103,7 @@ local Toggle = Tab:CreateToggle({
                     if shop then
                         -- Buat BillboardGui (ESP Text)
                         local esp = Instance.new("BillboardGui")
-                        esp.Size = UDim2.new(0, 100, 0, 50)
+                        esp.Size = UDim2.new(0, 90, 0, 50)
                         esp.Adornee = shop
                         esp.StudsOffset = Vector3.new(0, 5, 0) -- Geser ke atas Shop
                         esp.AlwaysOnTop = true
@@ -1991,7 +2141,7 @@ local function createESP(target)
     if target and not ESPs[target] then
         -- Buat BillboardGui (ESP Text)
         local esp = Instance.new("BillboardGui")
-        esp.Size = UDim2.new(0, 100, 0, 50)
+        esp.Size = UDim2.new(0, 90, 0, 50)
         esp.Adornee = target
         esp.StudsOffset = Vector3.new(0, 5, 0) -- Posisi di atas target
         esp.AlwaysOnTop = true
@@ -2000,7 +2150,7 @@ local function createESP(target)
         -- Buat TextLabel
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
+        label.BackgroundTransparency = 0.6
         label.Text = "Tower"
         label.TextColor3 = Color3.fromRGB(255, 0, 0) -- Warna merah
         label.TextScaled = true
@@ -2049,17 +2199,16 @@ local Button = Tab:CreateButton({
        Rayfield:Destroy()
     end,
  }) 
-local Section = Tab:CreateSection("server", true) -- The 2nd argument is to tell if its only a Title and doesnt contain element
+local Section = Tab:CreateSection("server", true)
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local currentPlaceId = game.PlaceId -- ID tempat saat ini
-local currentJobId = game.JobId -- ID server saat ini
+local currentPlaceId = game.PlaceId
+local currentJobId = game.JobId
 
--- Fungsi untuk mendapatkan waktu saat ini dalam format yang sesuai
 local function getCurrentDateTime()
-    local date = os.date("*t") -- Ambil waktu saat ini
+    local date = os.date("*t")
     return string.format(
         "%04d-%02d-%02d_%02d-%02d-%02d",
         date.year,
@@ -2095,6 +2244,7 @@ local function createLogFile(errorMessage)
 
     -- Simpan file
     writefile(fullPath, fileContent)
+    task.wait(2)
     print("Log file at:", fullPath)
 end
 
@@ -2108,7 +2258,7 @@ Tab:CreateButton(
 
             -- Cek variabel penting
             if not currentPlaceId or not currentJobId or not player then
-                local errorMessage = "Teleport failed: Missing required data."
+                local errorMessage = "Teleport failed: Missing data."
                 warn(errorMessage)
                 createLogFile(errorMessage)
                 return
@@ -2128,6 +2278,7 @@ Tab:CreateButton(
                 warn(errorMessage)
                 createLogFile(errorMessage)
             else
+                task.wait(2)
                 print("Teleport")
                 createLogFile() -- Buat log tanpa error
             end
@@ -2137,7 +2288,7 @@ Tab:CreateButton(
 Tab:CreateButton(
     {
         Name = "Infinite Yield",
-        Interact = "Click run another script",
+        Interact = "Click run script",
         Callback = function()
             -- Eksekusi script Infinite Yield
             local success, err =
@@ -2154,32 +2305,172 @@ Tab:CreateButton(
         end
     }
 )
+-- Button Fix Lag (Aman untuk trees)
 Tab:CreateButton(
     {
-        Name = "Clear Trees",
+        Name = "Fix Lag",
         Interact = "Click",
         Callback = function()
-            -- Periksa apakah path workspace.TreesNo ada
-            local treesNo = workspace:FindFirstChild("TreesNo")
-            if treesNo then
-                -- Hapus semua children dari TreesNo
-                for _, child in ipairs(treesNo:GetChildren()) do
-                    child:Destroy()
+            -- Optimasi part yang tidak penting tanpa menghancurkan trees
+            local optimized = 0
+            
+            -- Hapus part kecil/dekorasi yang tidak penting
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Part") then
+                    -- Hapus part yang sangat kecil (dekorasi)
+                    if obj.Size.Magnitude < 2 and obj.Transparency > 0.8 then
+                        obj:Destroy()
+                        optimized = optimized + 1
+                    -- Nonaktifkan collision untuk part dekorasi
+                    elseif obj.Name:lower():find("decoration") or obj.Name:lower():find("effect") then
+                        obj.CanCollide = false
+                        obj.CastShadow = false
+                        optimized = optimized + 1
+                    end
+                -- Hapus partikel effect yang berat
+                elseif obj:IsA("ParticleEmitter") then
+                    if obj.Name:lower():find("smoke") or obj.Name:lower():find("spark") then
+                        obj:Destroy()
+                        optimized = optimized + 1
+                    end
+                -- Optimasi lighting
+                elseif obj:IsA("PointLight") or obj:IsA("SpotLight") then
+                    if obj.Range > 50 then
+                        obj.Enabled = false
+                        optimized = optimized + 1
+                    end
                 end
-                
             end
+            
+            -- Clear debris (part yang jatuh)
+            game:GetService("Debris"):ClearAllChildren()
+            
+            -- Optimasi graphics settings
+            local lighting = game:GetService("Lighting")
+            lighting.GlobalShadows = false
+            lighting.FogEnd = 1000
+            
         end
     }
-) 
+)
+
+-- Button No Render (Reduce Graphics)
+Tab:CreateButton(
+    {
+        Name = "No Render⚠️",
+        Interact = "Click", 
+        Callback = function()
+            local players = game:GetService("Players")
+            local lighting = game:GetService("Lighting")
+            local runService = game:GetService("RunService")
+            
+            -- Extreme graphics reduction
+            lighting.GlobalShadows = false
+            lighting.FogEnd = 100
+            lighting.Brightness = 2
+            lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+            
+            -- Remove all lighting effects
+            for _, effect in ipairs(lighting:GetChildren()) do
+                if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or 
+                   effect:IsA("ColorCorrectionEffect") or effect:IsA("BloomEffect") then
+                    effect.Enabled = false
+                end
+            end
+            
+            -- Optimize terrain
+            local terrain = workspace:FindFirstChildOfClass("Terrain")
+            if terrain then
+                terrain.Decoration = false
+                terrain.WaterReflection = false
+                terrain.WaterTransparency = 0.5
+            end
+            
+            -- Hide distant objects
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Part") then
+                    if (obj.Position - players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 200 then
+                        obj.Transparency = 1
+                        obj.CanCollide = false
+                    end
+                end
+            end
+            
+            print("No Render activated - Extreme performance mode")
+        end
+    }
+)
+
+-- Button Destroy Terraria (Hanya untuk game Terraria-like)
+Tab:CreateButton(
+    {
+        Name = "Destroy Terraria⚠️",
+        Interact = "Click",
+        Callback = function()
+            local destroyed = 0
+            
+            -- Hancurkan block/terrain yang umum di game Terraria
+            local terrariaBlocks = {
+                 "stone", "dirt", "sand", "clay", "mud", 
+                 "tree", "ore", "copper", "iron", "silver", "gold",
+                 "brick", "marble", "granite", "ice", "snow"
+            }
+            
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Part") then
+                    local nameLower = obj.Name:lower()
+                    
+                    -- Cek apakah ini block terraria
+                    for _, blockName in ipairs(terrariaBlocks) do
+                        if nameLower:find(blockName) then
+                            -- Hancurkan block yang jauh dari player
+                            local player = game.Players.LocalPlayer
+                            if player and player.Character then
+                                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                                if hrp and (obj.Position - hrp.Position).Magnitude > 50 then
+                                    obj:Destroy()
+                                    destroyed = destroyed + 1
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- Hancurkan part yang sangat kecil (dekorasi)
+                    if obj.Size.Magnitude < 1 and obj.Transparency == 0 then
+                        obj:Destroy()
+                        destroyed = destroyed + 1
+                    end
+                end
+                
+                -- Hancurkan model terraria yang umum
+                if obj:IsA("Model") then
+                    local nameLower = obj.Name:lower()
+                    if nameLower:find("tree") or nameLower:find("rock") or nameLower:find("boulder") then
+                        local player = game.Players.LocalPlayer
+                        if player and player.Character then
+                            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                            if hrp and (obj:GetExtentsSize() - hrp.Position).Magnitude > 100 then
+                                obj:Destroy()
+                                destroyed = destroyed + 1
+                            end
+                        end
+                    end
+                end
+            end
+            
+            print("Destroyed " .. destroyed .. " Terraria objects")
+        end
+    }
+)
 local Section = Tab:CreateSection("stats")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-
 isStatsActive = false
 
-local Paragraph = Tab:CreateParagraph({Title = "Stats Info", Content = "waiting data/toggle on..."})
+local Paragraph = Tab:CreateParagraph({Title = "Stats Info", Content = "waiting data.."})
 
 local function updateParagraph()
     if not isStatsActive then return end 
@@ -2258,7 +2549,7 @@ end
 local renderConnection
 
 local Toggle = Tab:CreateToggle({
-    Name = "activate Stats",
+    Name = "activ monitor",
     CurrentValue = false,
     Flag = "ToggleStats",
     Callback = function(state)
@@ -2282,7 +2573,11 @@ local Tab = Window:CreateTab("Autobuilding", "hammer")
 local houseOptions = {
     "None", -- Tambahkan opsi None agar tidak langsung memuat skrip
     "House One",
-    "Large House One"
+    "Large House One",
+    "houseidk",
+    "MiniHouse",
+    "MarketCity",
+    "Market2"
 }
 
 local housePositions = {
@@ -2314,7 +2609,7 @@ local function loadHouseScript(houseName)
         
         Rayfield:Notify({
             Title = success and "Success" or "Error",
-            Content = success and (houseName .. " loaded successfully!") or ("Failed to load " .. houseName .. ": " .. tostring(err)),
+            Content = success and (houseName .. " success!") or ("Failed to load " .. houseName .. ": " .. tostring(err)),
             Duration = 6.5,
             Image = 4483362458,
         })
@@ -2370,4 +2665,4 @@ Tab:CreateButton({
         end
     end
 })
-local Paragraph = Tab:CreateParagraph({Title = "how to stop build?", Content = "unequip hammer or die/rejoin"})
+local Paragraph = Tab:CreateParagraph({Title = "how to stop build?", Content = "unequip tool, die/rejoin"})
